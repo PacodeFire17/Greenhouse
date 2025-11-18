@@ -76,6 +76,7 @@ void fn_INIT(){
         current_state = ...;
 }
 
+
 void fn_MANUAL(){
         f2();
         current_state = ...;
