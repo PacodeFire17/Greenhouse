@@ -45,7 +45,7 @@ StateMachine_t fsm[] = {
 };
 
 void fn_INIT(){
-       	f1();
+        f1();
         current_state = ...;
 }
 
