@@ -63,6 +63,8 @@ void _graphicsInit();
 void _hwInit();
 void _updateHw(void);
 
+void printSensorData(int temp, int hum);
+
 void fn_INIT(void);
 void fn_MANUAL(void);
 void fn_AUTOMATIC(void);
@@ -124,7 +126,7 @@ void fn_AUTOMATIC(){
 
 void fn_SETTINGS(){
         f3();
-        current_state = STATE_GREEN;
+        current_state = NUM_STATES;
 }
 
 
@@ -143,6 +145,7 @@ int main(void)
             (*fsm[current_state].state_function)();
         }
         else{
+            // This means something was left not implemented
             /* serious error */
         }
     }
@@ -159,6 +162,12 @@ void TA1_0_IRQHandler(void)
 
 void _graphicsInit()
 {
+    /* Graphic library context */
+    Graphics_Context g_sContext;
+
+    /* ADC results buffer */
+    static uint16_t resultsBuffer[3];
+
     /* Initializes display */
     Crystalfontz128x128_Init();
 
@@ -262,7 +271,8 @@ void _hwInit()
     CS_initClockSignal(CS_SMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
     CS_initClockSignal(CS_ACLK, CS_REFOCLK_SELECT, CS_CLOCK_DIVIDER_1);
 
-    _accelSensorInit();
+    // Not used, to be replaced with other initialization for what we use
+//    _accelSensorInit();
 }
 
 void _updateHw(void){
