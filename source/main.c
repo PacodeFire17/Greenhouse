@@ -44,10 +44,118 @@ StateMachine_t fsm[] = {
                       {STATE_AUTOMATIC, fn_AUTOMATIC}
 };
 
-void fn_INIT(){
-        f1();
-        current_state = ...;
+
+void fn_INIT(void)
+{
+    f1();
+    current_state = ...;
+    static uint8_t step = 0;
+    static uint8_t retry = 0;
+
+    switch(step)
+    {
+        /* --- STEP 0: POWER / CLOCK CHECK --- */
+        case 0:
+            if(hw_power_check()) {
+                retry = 0;
+                step++;
+            } else {
+                if(++retry >= 3) {
+                    // gestione di errore fatale
+                    // current_state = STATE_ERROR;
+                    return;
+                }
+            }
+            break;
+
+        /* --- STEP 1: GPIO / DISPLAY INIT --- */
+        case 1:
+            init_gpio();  
+            init_display();  
+            retry = 0;
+            step++;
+            break;
+
+        /* --- STEP 2: BUS INIT (I2C/SPI/UART) --- */
+        case 2:
+            if(bus_init()) {
+                retry = 0;
+                step++;
+            } else {
+                if(++retry >= 3) {
+                    // current_state = STATE_ERROR;
+                    return;
+                }
+            }
+            break;
+
+        /* --- STEP 3: SENSOR INIT --- */
+        case 3:
+            if(sensor_init_once()) {
+                retry = 0;
+                step++;
+            } else {
+                if(++retry >= 3) {
+                    // current_state = STATE_ERROR;
+                    return;
+                }
+            }
+            break;
+
+        /* --- STEP 4: SENSOR SELF TEST/VERIFY --- */
+        case 4:
+            if(sensor_verify()) {
+                retry = 0;
+                step++;
+            } else {
+                if(++retry >= 3) {
+                    // current_state = STATE_ERROR;
+                    return;
+                }
+            }
+            break;
+
+        /* --- STEP 5: TIMER INIT --- */
+        case 5:
+            Timer_A_configureUpMode(TIMER_A1_BASE, &upConfig);
+            Interrupt_enableInterrupt(INT_TA1_0);
+            Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_UP_MODE);
+
+            retry = 0;
+            step++;
+            break;
+
+        /* --- STEP 6: TIMER VERIFY (controllo tick) --- */
+        case 6:
+            if(timers_verify()) {     // es: verifica che l’ISR incrementi un counter
+                retry = 0;
+                step++;
+            } else {
+                if(++retry >= 3) {
+                    // current_state = STATE_ERROR;
+                    return;
+                }
+            }
+            break;
+
+        /* --- STEP 7: CHECK FINALI/DIAGNOSTICHE --- */
+        case 7:
+            if(check_system_ok()) {   // ADC baseline, mem checks, periferiche
+                step = 0;
+                retry = 0;
+
+                current_state = STATE_MANUAL;  // stato di destinazione
+            } else {
+                // current_state = STATE_ERROR;
+            }
+            break;
+
+        default:
+            step = 0;
+            break;
+    }
 }
+
 
 void fn_MANUAL(){
         f2();
