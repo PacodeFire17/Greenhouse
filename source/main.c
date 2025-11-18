@@ -5,45 +5,43 @@
 #include <stdint.h>
 #include <stdio.h>
 
+
+// ====== VARIABLES ======
+
 // Definition of hardware pins desired status
 // Check when running that this types are correct
-const uint_fast8_t PUMP_PORT = GPIO_PORT_P1;
-const uint_fast8_t RESISTOR_PORT = GPIO_PORT_P2;
-const uint_fast8_t HUMIDIFIER_PORT = GPIO_PORT_P3;
-const uint_fast8_t HUMIDITY_SENSOR_PORT = GPIO_PORT_P4;
-const uint_fast8_t TEMPERATURE_SENSOR_PORT = GPIO_PORT_P5;
+// Ports
+const uint_fast8_t FAN_PORT =           GPIO_PORT_P0;
+const uint_fast8_t PUMP_PORT =          GPIO_PORT_P1;
+const uint_fast8_t RESISTOR_PORT =      GPIO_PORT_P2;
+const uint_fast8_t HUMIDIFIER_PORT =    GPIO_PORT_P3;
+const uint_fast8_t HUMIDITY_SENSOR_PORT =       GPIO_PORT_P4;
+const uint_fast8_t TEMPERATURE_SENSOR_PORT =    GPIO_PORT_P5;
 
-const uint_fast16_t PUMP_PIN = GPIO_PIN1;
-const uint_fast16_t RESISTOR_PIN = GPIO_PIN2;
-const uint_fast16_t HUMIDIFIER_PIN = GPIO_PIN3;
-const uint_fast16_t HUMIDITY_SENSOR_PIN = GPIO_PIN4;
-const uint_fast16_t TEMPERATURE_SENSOR_PIN = GPIO_PIN5;
+// Pins
+const uint_fast16_t FAN_PIN =           GPIO_PIN0;
+const uint_fast16_t PUMP_PIN =          GPIO_PIN1;
+const uint_fast16_t RESISTOR_PIN =      GPIO_PIN2;
+const uint_fast16_t HUMIDIFIER_PIN =    GPIO_PIN3;
+const uint_fast16_t HUMIDITY_SENSOR_PIN =       GPIO_PIN4;
+const uint_fast16_t TEMPERATURE_SENSOR_PIN =    GPIO_PIN5;
 
-// Hardware status
-bool pump_state = false;
-bool resistor_state = false;
+// Status
+bool fan_state =        false;
+bool pump_state =       false;
+bool resistor_state =   false;
 bool humidifier_state = false;
-uint_fast16_t humidity_sensor_value = 0;
-uint_fast16_t temperature_sensor_value = 0;
+uint_fast8_t humidity_sensor_value =    0;
+uint_fast8_t temperature_sensor_value = 0;
 
-void _graphicsInit();
-void _hwInit();
+    // Mi sembrava che ci fosse un modo in C per non dire il tipo di una costante
+    // This grants approx 4 interrupts a second - version given by professor in accelerometer_lcd.c
+// #define TIMER_PERIOD    0x2DC6
+    // Slower version, approx. 0.7/sec
+    // Should be ok for all our interrupt purposes
+#define TIMER_PERIOD    0xFFFF
 
-// Rename and implement for FSM:
-void _init(){
-    _graphicsInit();
-    _hwInit();
-
-}
-
-void f2(){
-    printf("f2");
-}
-
-void f3(){
-    printf("f3");
-}
-
+// States definition
 typedef enum {
     STATE_INIT,
     STATE_MANUAL,
@@ -57,10 +55,46 @@ typedef struct{
     void (*state_function)(void);
 } StateMachine_t;
 
+// ====== FUNCTIONS ======
+
+// ALL TO BE MOVED TO SEPARATE FILE
+
+void _graphicsInit();
+void _hwInit();
+void _updateHw(void);
+
 void fn_INIT(void);
 void fn_MANUAL(void);
 void fn_AUTOMATIC(void);
 void fn_SETTINGS(void);
+
+// Rename and implement for FSM
+// Also, move to external file and leave only header (or alternative better organization)
+
+void _init(){
+    // reset the states
+    // To be implemented later on: read from memory instead of resetting
+    fan_state =        false;
+    pump_state =       false;
+    resistor_state =   false;
+    humidifier_state = false;
+    humidity_sensor_value =    0;
+    temperature_sensor_value = 0;
+    _graphicsInit();
+    _hwInit();
+    _updateHw();
+
+}
+
+void _auto(){
+    printf("f2");
+}
+
+void f3(){
+    printf("f3");
+}
+
+
 
 State_t current_state = STATE_INIT;
 
@@ -73,12 +107,13 @@ StateMachine_t fsm[] = {
 
 void fn_INIT(){
         _init();
-        current_state = ...;
+        current_state = STATE_AUTOMATIC;
 }
 
 
 void fn_MANUAL(){
-        f2();
+        _auto();
+        // Read settings value: if it changes,
         current_state = ...;
 }
 
@@ -93,34 +128,12 @@ void fn_SETTINGS(){
 }
 
 
-/* Application Defines  */
-#define TIMER_PERIOD    0x2DC6
 
-/* Timer_A UpMode Configuration Parameter */
-const Timer_A_UpModeConfig upConfig =
-{
-        TIMER_A_CLOCKSOURCE_SMCLK,              // SMCLK Clock Source
-        TIMER_A_CLOCKSOURCE_DIVIDER_64,         // SMCLK/64 = 3MHz/64
-        TIMER_PERIOD,                           // every half second
-        TIMER_A_TAIE_INTERRUPT_DISABLE,         // Disable Timer interrupt
-        TIMER_A_CCIE_CCR0_INTERRUPT_ENABLE ,    // Enable CCR0 interrupt
-        TIMER_A_DO_CLEAR                        // Clear value
-};
+// ====== MAIN ======
 
 int main(void)
 {
-    // Ideally move this to HWInit
 
-    /* Configuring Timer_A1 for Up Mode */
-    Timer_A_configureUpMode(TIMER_A1_BASE, &upConfig);
-
-    /* Enabling interrupts and starting the timer */
-    // Interrupt_enableSleepOnIsrExit();
-    Interrupt_enableInterrupt(INT_TA1_0);
-    Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_UP_MODE);
-
-    /* Enabling MASTER interrupts */
-    Interrupt_enableMaster();
 
     /* Sleeping when not in use */
     while (1)
@@ -163,6 +176,29 @@ void _graphicsInit()
 
 void _hwInit()
 {
+
+    /* Timer_A UpMode Configuration Parameter */
+    const Timer_A_UpModeConfig upConfig =
+    {
+            TIMER_A_CLOCKSOURCE_SMCLK,              // SMCLK Clock Source
+            TIMER_A_CLOCKSOURCE_DIVIDER_64,         // SMCLK/64 = 3MHz/64
+            TIMER_PERIOD,                           // every half second
+            TIMER_A_TAIE_INTERRUPT_DISABLE,         // Disable Timer interrupt
+            TIMER_A_CCIE_CCR0_INTERRUPT_ENABLE ,    // Enable CCR0 interrupt
+            TIMER_A_DO_CLEAR                        // Clear value
+    };
+
+    /* Configuring Timer_A1 for Up Mode */
+    Timer_A_configureUpMode(TIMER_A1_BASE, &upConfig);
+
+    /* Enabling interrupts and starting the timer */
+    // Interrupt_enableSleepOnIsrExit();
+    Interrupt_enableInterrupt(INT_TA1_0);
+    Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_UP_MODE);
+
+    /* Enabling MASTER interrupts */
+    Interrupt_enableMaster();
+
     /* Halting WDT and disabling master interrupts */
     WDT_A_holdTimer();
     Interrupt_disableMaster();
@@ -227,4 +263,13 @@ void _hwInit()
     CS_initClockSignal(CS_ACLK, CS_REFOCLK_SELECT, CS_CLOCK_DIVIDER_1);
 
     _accelSensorInit();
+}
+
+void _updateHw(void){
+    // TODO!
+    // Update hardware based on the variables:
+    // fan_state
+    // pump_state
+    // resistor_state
+    // humidifier_state
 }
