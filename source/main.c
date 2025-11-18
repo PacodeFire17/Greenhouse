@@ -1,20 +1,47 @@
-#include <ti/devices/msp432p4xx/inc/msp.h>
 #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
-#include <ti/grlib/grlib.h>
 #include "LcdDriver/Crystalfontz128x128_ST7735.h"
+#include <ti/devices/msp432p4xx/inc/msp.h>
+#include <ti/grlib/grlib.h>
+#include <stdint.h>
 #include <stdio.h>
 
+// Definition of hardware pins desired status
+// Check when running that this types are correct
+const uint_fast8_t PUMP_PORT = GPIO_PORT_P1;
+const uint_fast8_t RESISTOR_PORT = GPIO_PORT_P2;
+const uint_fast8_t HUMIDIFIER_PORT = GPIO_PORT_P3;
+const uint_fast8_t HUMIDITY_SENSOR_PORT = GPIO_PORT_P4;
+const uint_fast8_t TEMPERATURE_SENSOR_PORT = GPIO_PORT_P5;
+
+const uint_fast16_t PUMP_PIN = GPIO_PIN1;
+const uint_fast16_t RESISTOR_PIN = GPIO_PIN2;
+const uint_fast16_t HUMIDIFIER_PIN = GPIO_PIN3;
+const uint_fast16_t HUMIDITY_SENSOR_PIN = GPIO_PIN4;
+const uint_fast16_t TEMPERATURE_SENSOR_PIN = GPIO_PIN5;
+
+// Hardware status
+bool pump_state = false;
+bool resistor_state = false;
+bool humidifier_state = false;
+uint_fast16_t humidity_sensor_value = 0;
+uint_fast16_t temperature_sensor_value = 0;
+
+void _graphicsInit();
+void _hwInit();
+
 // Rename and implement for FSM:
-void f1(){
-    ...
+void _init(){
+    _graphicsInit();
+    _hwInit();
+
 }
 
 void f2(){
-    ...
+    printf("f2");
 }
 
 void f3(){
-    ...
+    printf("f3");
 }
 
 typedef enum {
@@ -45,7 +72,7 @@ StateMachine_t fsm[] = {
 };
 
 void fn_INIT(){
-        f1();
+        _init();
         current_state = ...;
 }
 
@@ -81,12 +108,7 @@ const Timer_A_UpModeConfig upConfig =
 
 int main(void)
 {
-    /* Stop WDT  */
-    WDT_A_holdTimer();
-
-    // configure ports
-    ...
-    // better to define a function for this
+    // Ideally move this to HWInit
 
     /* Configuring Timer_A1 for Up Mode */
     Timer_A_configureUpMode(TIMER_A1_BASE, &upConfig);
@@ -120,3 +142,88 @@ void TA1_0_IRQHandler(void)
 }
 
 // Implement interrupts for other buttons and input as well
+
+void _graphicsInit()
+{
+    /* Initializes display */
+    Crystalfontz128x128_Init();
+
+    /* Set default screen orientation */
+    Crystalfontz128x128_SetOrientation(LCD_ORIENTATION_UP);
+
+    /* Initializes graphics context */
+    Graphics_initContext(&g_sContext, &g_sCrystalfontz128x128,
+                         &g_sCrystalfontz128x128_funcs);
+    Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_RED);
+    Graphics_setBackgroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
+    GrContextFontSet(&g_sContext, &g_sFontFixed6x8);
+    Graphics_clearDisplay(&g_sContext);
+}
+
+void _hwInit()
+{
+    /* Halting WDT and disabling master interrupts */
+    WDT_A_holdTimer();
+    Interrupt_disableMaster();
+
+    // Set output pins using the following:
+    GPIO_setAsOutputPin(PUMP_PORT, PUMP_PIN);
+    GPIO_setAsOutputPin(HUMIDIFIER_PORT, RESISTOR_PIN);
+    GPIO_setAsOutputPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
+
+    // Set input pins
+    // TODO! using function:
+    GPIO_setAsPeripheralModuleFunctionInputPin()
+
+    // If it is instead pull up/down:
+    // GPIO_setAsInputPinWithPullUpResistor(...);
+    // GPIO_setAsInputPinWithPullDownResistor(...);
+
+    // init ADC
+    // TODO!
+    // brutally copy-pasted code from accelerometer_lcd.c (to be checked):
+        /* Initializing ADC (ADCOSC/64/8) */
+        ADC14_enableModule();
+        ADC14_initModule(ADC_CLOCKSOURCE_ADCOSC, ADC_PREDIVIDER_64, ADC_DIVIDER_8,
+                         0);
+
+        /* Configuring ADC Memory (ADC_MEM0 - ADC_MEM2 (A11, A13, A14)  with no repeat)
+         * with internal 2.5v reference */
+        ADC14_configureMultiSequenceMode(ADC_MEM0, ADC_MEM2, true);
+        ADC14_configureConversionMemory(ADC_MEM0,
+        ADC_VREFPOS_AVCC_VREFNEG_VSS,
+                                        ADC_INPUT_A14, ADC_NONDIFFERENTIAL_INPUTS);
+
+        ADC14_configureConversionMemory(ADC_MEM1,
+        ADC_VREFPOS_AVCC_VREFNEG_VSS,
+                                        ADC_INPUT_A13, ADC_NONDIFFERENTIAL_INPUTS);
+
+        ADC14_configureConversionMemory(ADC_MEM2,
+        ADC_VREFPOS_AVCC_VREFNEG_VSS,
+                                        ADC_INPUT_A11, ADC_NONDIFFERENTIAL_INPUTS);
+
+        /* Enabling the interrupt when a conversion on channel 2 (end of sequence)
+         *  is complete and enabling conversions */
+        ADC14_enableInterrupt(ADC_INT2);
+
+        /* Enabling Interrupts */
+        Interrupt_enableInterrupt(INT_ADC14);
+        Interrupt_enableMaster();
+
+
+    /* Set the core voltage level to VCORE1 */
+    PCM_setCoreVoltageLevel(PCM_VCORE1);
+
+    /* Set 2 flash wait states for Flash bank 0 and 1*/
+    FlashCtl_setWaitState(FLASH_BANK0, 2);
+    FlashCtl_setWaitState(FLASH_BANK1, 2);
+
+    /* Initializes Clock System */
+    CS_setDCOCenteredFrequency(CS_DCO_FREQUENCY_48);
+    CS_initClockSignal(CS_MCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
+    CS_initClockSignal(CS_HSMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
+    CS_initClockSignal(CS_SMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
+    CS_initClockSignal(CS_ACLK, CS_REFOCLK_SELECT, CS_CLOCK_DIVIDER_1);
+
+    _accelSensorInit();
+}
