@@ -6,12 +6,12 @@
 #include <stdio.h>
 
 
-// ====== VARIABLES ======
+// ====== VARIABLES & CONSTANTS ======
 
 // Definition of hardware pins desired status
 // Check when running that this types are correct
 // Ports
-const uint_fast8_t FAN_PORT =           GPIO_PORT_P0;
+#define FAN_PORT =           GPIO_PORT_P0;
 const uint_fast8_t PUMP_PORT =          GPIO_PORT_P1;
 const uint_fast8_t RESISTOR_PORT =      GPIO_PORT_P2;
 const uint_fast8_t HUMIDIFIER_PORT =    GPIO_PORT_P3;
@@ -87,11 +87,11 @@ void _init(){
 }
 
 void _auto(){
-    printf("f2");
+    // TODO!
 }
 
 void f3(){
-    printf("f3");
+    // TODO
 }
 
 
@@ -114,16 +114,16 @@ void fn_INIT(){
 void fn_MANUAL(){
         _auto();
         // Read settings value: if it changes,
-        current_state = ...;
+        current_state = NUM_STATES;
 }
 
 void fn_AUTOMATIC(){
-        f3();
-        current_state = ...;
+        _auto();
+        current_state = NUM_STATES;
 }
 
 void fn_SETTINGS(){
-        f1();
+        f3();
         current_state = STATE_GREEN;
 }
 
@@ -210,7 +210,7 @@ void _hwInit()
 
     // Set input pins
     // TODO! using function:
-    GPIO_setAsPeripheralModuleFunctionInputPin()
+    // GPIO_setAsPeripheralModuleFunctionInputPin();
 
     // If it is instead pull up/down:
     // GPIO_setAsInputPinWithPullUpResistor(...);
