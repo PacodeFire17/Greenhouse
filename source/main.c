@@ -165,9 +165,6 @@ void _graphicsInit()
     /* Graphic library context */
     Graphics_Context g_sContext;
 
-    /* ADC results buffer */
-    static uint16_t resultsBuffer[3];
-
     /* Initializes display */
     Crystalfontz128x128_Init();
 
@@ -224,38 +221,6 @@ void _hwInit()
     // If it is instead pull up/down:
     // GPIO_setAsInputPinWithPullUpResistor(...);
     // GPIO_setAsInputPinWithPullDownResistor(...);
-
-    // init ADC
-    // TODO!
-    // brutally copy-pasted code from accelerometer_lcd.c (to be checked):
-        /* Initializing ADC (ADCOSC/64/8) */
-        ADC14_enableModule();
-        ADC14_initModule(ADC_CLOCKSOURCE_ADCOSC, ADC_PREDIVIDER_64, ADC_DIVIDER_8,
-                         0);
-
-        /* Configuring ADC Memory (ADC_MEM0 - ADC_MEM2 (A11, A13, A14)  with no repeat)
-         * with internal 2.5v reference */
-        ADC14_configureMultiSequenceMode(ADC_MEM0, ADC_MEM2, true);
-        ADC14_configureConversionMemory(ADC_MEM0,
-        ADC_VREFPOS_AVCC_VREFNEG_VSS,
-                                        ADC_INPUT_A14, ADC_NONDIFFERENTIAL_INPUTS);
-
-        ADC14_configureConversionMemory(ADC_MEM1,
-        ADC_VREFPOS_AVCC_VREFNEG_VSS,
-                                        ADC_INPUT_A13, ADC_NONDIFFERENTIAL_INPUTS);
-
-        ADC14_configureConversionMemory(ADC_MEM2,
-        ADC_VREFPOS_AVCC_VREFNEG_VSS,
-                                        ADC_INPUT_A11, ADC_NONDIFFERENTIAL_INPUTS);
-
-        /* Enabling the interrupt when a conversion on channel 2 (end of sequence)
-         *  is complete and enabling conversions */
-        ADC14_enableInterrupt(ADC_INT2);
-
-        /* Enabling Interrupts */
-        Interrupt_enableInterrupt(INT_ADC14);
-        Interrupt_enableMaster();
-
 
     /* Set the core voltage level to VCORE1 */
     PCM_setCoreVoltageLevel(PCM_VCORE1);
