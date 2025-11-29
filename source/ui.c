@@ -8,8 +8,6 @@
 #include "hardware.h"
 #include "states.h"
 #include "ui.h"
-// Likely need to include specific graphics libraries here
-// #include "glcd.h"
 
 
 void graphicsInit(void)
@@ -30,7 +28,7 @@ void graphicsInit(void)
 }
 
 void printSensorData(int temp, int hum) {
-    // TODO!
+    printf("Temperature: %d\t humidity: %d\n", temp, hum);
 }
 
 /*
@@ -61,5 +59,20 @@ void drawTitle(void)
         OPAQUE_TEXT);
 }
 
+
+void printWaterSettings(int level){
+    // TODO
+    printf("Value of level = %d\n",level);
+}
+
+void printHumSettings(int level){
+    // TODO!
+    printf("Value of level = %d\n",level);
+}
+
+void printTempSettings(int level){
+    // TODO!
+    printf("Value of level = %d\n",level);
+}
 
 

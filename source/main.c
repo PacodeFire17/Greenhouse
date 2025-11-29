@@ -16,9 +16,6 @@
 
 // ====== VARIABLES & CONSTANTS ======
 
-// Definition of hardware pins desired status
-// Check when running that this types are correct
-
 // moved to hardware.c
 
 // ====== STATE MACHINE ======
@@ -54,14 +51,5 @@ int main(void)
     }
 }
 
-// Can we move this?
-void TA1_0_IRQHandler(void)
-{
-    // implement normal mode interrupt functions
-    Timer_A_clearCaptureCompareInterrupt(TIMER_A1_BASE,
-            TIMER_A_CAPTURECOMPARE_REGISTER_0);
-}
-
-// Implement interrupts for other buttons and input as well
 
 

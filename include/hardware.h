@@ -9,13 +9,15 @@ extern bool humidifier_state;
 extern uint_fast8_t humidity_sensor_value;
 extern uint_fast8_t temperature_sensor_value;
 
-// Graphic library context
-extern Graphics_Context g_sContext;
 
 // Functions declarations
+
+// initialization
 void init(void);
 void hwInit(void);
+// Change hardware state based on logic
 void updateHw(void);
+// Pause/resume
 void pauseHw(void);
 void resumeHw(void);
 

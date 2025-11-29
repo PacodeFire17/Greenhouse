@@ -15,17 +15,25 @@
 // Definition of hardware pins desired status
 // Check when running that this types are correct
 
-// Ports
+// Ports (absolutely arbitrary and to be redefined, except for buttons)
+const uint_fast8_t B1_PORT =                    GPIO_PORT_P1;
+const uint_fast8_t B2_PORT =                    GPIO_PORT_P1;
+const uint_fast8_t B3_PORT =                    GPIO_PORT_P1;
 const uint_fast8_t FAN_PORT =                   GPIO_PORT_P1;
 const uint_fast8_t PUMP_PORT =                  GPIO_PORT_P2;
+const uint_fast8_t SWITCH_PORT =                GPIO_PORT_P2;
 const uint_fast8_t RESISTOR_PORT =              GPIO_PORT_P3;
 const uint_fast8_t HUMIDIFIER_PORT =            GPIO_PORT_P4;
 const uint_fast8_t HUMIDITY_SENSOR_PORT =       GPIO_PORT_P5;
 const uint_fast8_t TEMPERATURE_SENSOR_PORT =    GPIO_PORT_P6;
 
-// Pins
+// Pins (equally arbitrary)
+const uint_fast16_t B1_PIN =                    GPIO_PIN0;
+const uint_fast16_t B2_PIN =                    GPIO_PIN1;
+const uint_fast16_t B3_PIN =                    GPIO_PIN4;
 const uint_fast16_t FAN_PIN =                   GPIO_PIN0;
 const uint_fast16_t PUMP_PIN =                  GPIO_PIN1;
+const uint_fast16_t SWITCH_PIN =                GPIO_PIN2;
 const uint_fast16_t RESISTOR_PIN =              GPIO_PIN2;
 const uint_fast16_t HUMIDIFIER_PIN =            GPIO_PIN3;
 const uint_fast16_t HUMIDITY_SENSOR_PIN =       GPIO_PIN4;
@@ -70,6 +78,7 @@ void hwInit(void)
     };
 
     Timer_A_configureUpMode(TIMER_A1_BASE, &upConfig);
+    // Interrupts for timer
     Interrupt_enableInterrupt(INT_TA1_0);
     Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_UP_MODE);
 
@@ -94,6 +103,18 @@ void hwInit(void)
     // Humidifier
     GPIO_setAsOutputPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
     GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
+
+    // Buttons - these are actually hardcoded instead of using the variables since they cannot be moved
+    //P1.1
+    GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P1, GPIO_PIN1);
+    GPIO_enableInterrupt(GPIO_PORT_P1, GPIO_PIN1);
+
+    // P1.4
+    GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P1, GPIO_PIN4);
+    GPIO_enableInterrupt(GPIO_PORT_P1, GPIO_PIN4);
+
+    // Enable interrupts
+    Interrupt_enableInterrupt(INT_PORT1);
 
 
     // Set input pins
@@ -160,5 +181,36 @@ void init(){
     hwInit();
     updateHw();
 
+}
+
+// Timer 1 interrupt
+void TA1_0_IRQHandler(void)
+{
+    // implement normal mode interrupt functions
+    // TODO!
+    Timer_A_clearCaptureCompareInterrupt(TIMER_A1_BASE,
+            TIMER_A_CAPTURECOMPARE_REGISTER_0);
+}
+
+// Button handler in port 1
+volatile uint8_t button_events = EVT_NONE;
+
+void PORT1_IRQHandler(void)
+{
+    uint32_t status = GPIO_getEnabledInterruptStatus(GPIO_PORT_P1);
+    GPIO_clearInterruptFlag(GPIO_PORT_P1, status);
+    // Use or to stack events when many happen at the same time
+    if (status & B1_PIN) {
+        button_events |= EVT_B1_PRESS;
+    }
+
+    if (status & B2_PIN) {
+        button_events |= EVT_B2_PRESS;
+    }
+
+    // Assuming B3 is on Pin 4 based on your previous messages
+    if (status & GPIO_PIN4) {
+        button_events |= EVT_B3_PRESS;
+    }
 }
 

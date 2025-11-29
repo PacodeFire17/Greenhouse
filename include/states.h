@@ -1,6 +1,7 @@
 #ifndef APP_STATES_H
 #define APP_STATES_H
 
+// FSM states
 typedef enum
 {
     STATE_INIT,
@@ -11,6 +12,14 @@ typedef enum
     STATE_SET_TEMP,
     NUM_STATES
 }State_t;
+
+// Button press states as Flags
+#define EVT_NONE      0x00
+#define EVT_B1_PRESS  0x01  // 0001 // Settings
+#define EVT_B2_PRESS  0x02  // 0010 // Up (board)
+#define EVT_B3_PRESS  0x04  // 0100 // Down (board)
+
+extern volatile uint8_t button_events;
 
 typedef struct{
     State_t state;
