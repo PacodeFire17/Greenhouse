@@ -7,6 +7,7 @@
 
 #include "hardware.h"
 #include "states.h"
+#include "ui.h"
 
 
 // ====== VARIABLES & CONSTANTS ======
@@ -127,6 +128,13 @@ void hwInit(void)
     // TODO!
 }
 
+void pauseHw(void){
+    // TODO!
+}
+
+void resumeHw(void){
+    // TODO!
+}
 
 void updateHw(void){
     // TODO!
@@ -137,54 +145,7 @@ void updateHw(void){
     // humidifier_state
 }
 
-/*
- * Clear display and redraw
- * Example implementation using accelerometer data
- */
-void drawTitle(void)
-{
-    Graphics_clearDisplay(&g_sContext);
-    Graphics_drawStringCentered(&g_sContext, (int8_t *) "Accelerometer:",
-    AUTO_STRING_LENGTH,
-                                64, 30,
-                                OPAQUE_TEXT);
-    // Purely as an example
 
-    int resultsBuffer[3] = {0,1,2};
-    char string[10];
-        sprintf(string, "X: %5d", resultsBuffer[0]);
-        Graphics_drawStringCentered(&g_sContext, (int8_t *) string, 8, 64, 50,
-        OPAQUE_TEXT);
-
-        sprintf(string, "Y: %5d", resultsBuffer[1]);
-        Graphics_drawStringCentered(&g_sContext, (int8_t *) string, 8, 64, 70,
-        OPAQUE_TEXT);
-
-        sprintf(string, "Z: %5d", resultsBuffer[2]);
-        Graphics_drawStringCentered(&g_sContext, (int8_t *) string, 8, 64, 90,
-        OPAQUE_TEXT);
-}
-
-
-
-void graphicsInit()
-{
-
-
-    /* Initializes display */
-    Crystalfontz128x128_Init();
-
-    /* Set default screen orientation */
-    Crystalfontz128x128_SetOrientation(LCD_ORIENTATION_UP);
-
-    /* Initializes graphics context */
-    Graphics_initContext(&g_sContext, &g_sCrystalfontz128x128,
-                         &g_sCrystalfontz128x128_funcs);
-    Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_RED);
-    Graphics_setBackgroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
-    GrContextFontSet(&g_sContext, &g_sFontFixed6x8);
-    Graphics_clearDisplay(&g_sContext);
-}
 
 void init(){
     // reset the states

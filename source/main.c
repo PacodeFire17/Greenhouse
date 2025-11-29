@@ -10,6 +10,7 @@
 
 #include "hardware.h"
 #include "states.h"
+#include "ui.h"
 
 
 
@@ -27,7 +28,9 @@
 StateMachine_t fsm[] = {
                       {STATE_INIT, fn_INIT},
                       {STATE_MANUAL, fn_MANUAL},
-                      {STATE_SETTINGS, fn_SETTINGS},
+                      {STATE_SET_WATER, fn_SET_WATER},
+                      {STATE_SET_HUM, fn_SET_HUMIDITY},
+                      {STATE_SET_TEMP, fn_SET_TEMP},
                       {STATE_AUTOMATIC, fn_AUTOMATIC}
 };
 

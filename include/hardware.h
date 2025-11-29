@@ -16,8 +16,7 @@ extern Graphics_Context g_sContext;
 void init(void);
 void hwInit(void);
 void updateHw(void);
-void drawAccelData(void);
-void drawTitle(void);
-void graphicsInit(void);
+void pauseHw(void);
+void resumeHw(void);
 
 #endif
