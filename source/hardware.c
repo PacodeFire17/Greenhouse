@@ -51,7 +51,7 @@ uint_fast8_t temperature_sensor_value = 0;
     // This grants approx 4 interrupts a second - version given by professor in accelerometer_lcd.c
 // #define TIMER_PERIOD    0x2DC6
     // Slower version, approx. 0.7/sec
-    // Should be ok for all our interrupt purposes
+    // Should be ok for all our interrupt purposes...
 #define TIMER_PERIOD    0xFFFF
 
 // whatever graphics context is
