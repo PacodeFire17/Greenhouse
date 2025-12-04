@@ -183,13 +183,20 @@ void init(){
 
 }
 
+// variable timer flag 
+volatile bool timer_flag = false;
+
 // Timer 1 interrupt
 void TA1_0_IRQHandler(void)
 {
+    // clear hardware flag 
+    Timer_A_clearCaptureCompareInterrupt(TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
+
+    // timer_flag == true --> period of time has passed
+    timer_flag = true;
+
     // implement normal mode interrupt functions
     // TODO!
-    Timer_A_clearCaptureCompareInterrupt(TIMER_A1_BASE,
-            TIMER_A_CAPTURECOMPARE_REGISTER_0);
 }
 
 // Button handler in port 1
@@ -199,6 +206,7 @@ void PORT1_IRQHandler(void)
 {
     uint32_t status = GPIO_getEnabledInterruptStatus(GPIO_PORT_P1);
     GPIO_clearInterruptFlag(GPIO_PORT_P1, status);
+    
     // Use or to stack events when many happen at the same time
     if (status & B1_PIN) {
         button_events |= EVT_B1_PRESS;
