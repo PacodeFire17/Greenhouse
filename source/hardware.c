@@ -107,10 +107,14 @@ void hwInit(void)
     // Buttons - these are actually hardcoded instead of using the variables since they cannot be moved
     //P1.1
     GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P1, GPIO_PIN1);
+    GPIO_interruptEdgeSelect(GPIO_PORT_P1, GPIO_PIN1, GPIO_HIGH_TO_LOW_TRANSITION);
+    GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN1);
     GPIO_enableInterrupt(GPIO_PORT_P1, GPIO_PIN1);
 
     // P1.4
     GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P1, GPIO_PIN4);
+    GPIO_interruptEdgeSelect(GPIO_PORT_P1, GPIO_PIN4, GPIO_HIGH_TO_LOW_TRANSITION);
+    GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN4)
     GPIO_enableInterrupt(GPIO_PORT_P1, GPIO_PIN4);
 
     // Enable interrupts
@@ -183,6 +187,8 @@ void init(){
 
 }
 
+
+
 // variable timer flag 
 volatile bool timer_flag = false;
 
@@ -199,6 +205,8 @@ void TA1_0_IRQHandler(void)
     // TODO!
 }
 
+
+
 // Button handler in port 1
 volatile uint8_t button_events = EVT_NONE;
 
@@ -206,7 +214,7 @@ void PORT1_IRQHandler(void)
 {
     uint32_t status = GPIO_getEnabledInterruptStatus(GPIO_PORT_P1);
     GPIO_clearInterruptFlag(GPIO_PORT_P1, status);
-    
+
     // Use or to stack events when many happen at the same time
     if (status & B1_PIN) {
         button_events |= EVT_B1_PRESS;
