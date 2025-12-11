@@ -28,9 +28,9 @@ const uint_fast8_t HUMIDITY_SENSOR_PORT =       GPIO_PORT_P5;
 const uint_fast8_t TEMPERATURE_SENSOR_PORT =    GPIO_PORT_P6;
 
 // Pins (equally arbitrary)
-const uint_fast16_t B1_PIN =                    GPIO_PIN0;
-const uint_fast16_t B2_PIN =                    GPIO_PIN1;
-const uint_fast16_t B3_PIN =                    GPIO_PIN4;
+const uint_fast16_t B1_PIN =                    GPIO_PIN1; //don't change
+const uint_fast16_t B2_PIN =                    GPIO_PIN4; //don't change
+const uint_fast16_t B3_PIN =                    GPIO_PIN5; //don't change
 const uint_fast16_t FAN_PIN =                   GPIO_PIN0;
 const uint_fast16_t PUMP_PIN =                  GPIO_PIN1;
 const uint_fast16_t SWITCH_PIN =                GPIO_PIN2;
@@ -52,7 +52,8 @@ uint_fast8_t temperature_sensor_value = 0;
 // #define TIMER_PERIOD    0x2DC6
     // Slower version, approx. 0.7/sec
     // Should be ok for all our interrupt purposes...
-#define TIMER_PERIOD    0xFFFF
+//#define TIMER_PERIOD    0xFFFF
+#define TIMER_PERIOD 7500 //timer A1 count 100Hz (10ms)
 
 // whatever graphics context is
 Graphics_Context g_sContext;
@@ -105,17 +106,23 @@ void hwInit(void)
     GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
 
     // Buttons - these are actually hardcoded instead of using the variables since they cannot be moved
-    //P1.1
-    GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P1, GPIO_PIN1);
-    GPIO_interruptEdgeSelect(GPIO_PORT_P1, GPIO_PIN1, GPIO_HIGH_TO_LOW_TRANSITION);
-    GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN1);
-    GPIO_enableInterrupt(GPIO_PORT_P1, GPIO_PIN1);
+    //B1 = P1.1
+    GPIO_setAsInputPinWithPullUpResistor(B1_PORT, B1_PIN);
+    GPIO_interruptEdgeSelect(B1_PORT, B1_PIN, GPIO_HIGH_TO_LOW_TRANSITION);
+    GPIO_clearInterruptFlag(B1_PORT, B1_PIN);
+    GPIO_enableInterrupt(B1_PORT, B1_PIN);
 
-    // P1.4
-    GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P1, GPIO_PIN4);
-    GPIO_interruptEdgeSelect(GPIO_PORT_P1, GPIO_PIN4, GPIO_HIGH_TO_LOW_TRANSITION);
-    GPIO_clearInterruptFlag(GPIO_PORT_P1, GPIO_PIN4)
-    GPIO_enableInterrupt(GPIO_PORT_P1, GPIO_PIN4);
+    //B2 = P1.4
+    GPIO_setAsInputPinWithPullUpResistor(B2_PORT, B2_PIN);
+    GPIO_interruptEdgeSelect(B2_PORT, B2_PIN, GPIO_HIGH_TO_LOW_TRANSITION);
+    GPIO_clearInterruptFlag(B2_PORT, B2_PIN);
+    GPIO_enableInterrupt(B2_PORT, B2_PIN);
+
+    //B3 = P1.5
+    GPIO_setAsInputPinWithPullUpResistor(B3_PORT, B3_PIN);
+    GPIO_interruptEdgeSelect(B3_PORT, B3_PIN, GPIO_HIGH_TO_LOW_TRANSITION);
+    GPIO_clearInterruptFlag(B3_PORT, B3_PIN);
+    GPIO_enableInterrupt(B3_PORT, B3_PIN);
 
     // Enable interrupts
     Interrupt_enableInterrupt(INT_PORT1);
@@ -191,12 +198,19 @@ void init(){
 
 // variable timer flag 
 volatile bool timer_flag = false;
+//contatore per il blocco dei rimbalzi (time lockout)
+volatile uint8_t debounce_countdown = 0; 
 
 // Timer 1 interrupt
 void TA1_0_IRQHandler(void)
 {
     // clear hardware flag 
     Timer_A_clearCaptureCompareInterrupt(TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
+
+    //gestione debounce: decrementa se maggiore di 0
+    if (debounce_countdown > 0) {
+        debounce_countdown--;
+    }
 
     // timer_flag == true --> period of time has passed
     timer_flag = true;
@@ -212,21 +226,38 @@ volatile uint8_t button_events = EVT_NONE;
 
 void PORT1_IRQHandler(void)
 {
+    //legge lo stato di chi ha generato l'interrupt su tutta la porta
     uint32_t status = GPIO_getEnabledInterruptStatus(GPIO_PORT_P1);
+
+    //clear all active interrupt flags
     GPIO_clearInterruptFlag(GPIO_PORT_P1, status);
 
-    // Use or to stack events when many happen at the same time
-    if (status & B1_PIN) {
-        button_events |= EVT_B1_PRESS;
-    }
+    //SE E SOLO SE countdown arrivato a 0, accettiamo altri input, altrimenti ignoriamo il rimbalzo meccanico
+    if(debounce_countdown == 0){
 
-    if (status & B2_PIN) {
-        button_events |= EVT_B2_PRESS;
-    }
+        bool valid_press = false;
 
-    // Assuming B3 is on Pin 4 based on your previous messages
-    if (status & GPIO_PIN4) {
-        button_events |= EVT_B3_PRESS;
+        // Use or to stack events when many happen at the same time
+        if (status & B1_PIN) {
+            button_events |= EVT_B1_PRESS;
+            valid_press = true;
+        }
+
+        if (status & B2_PIN) {
+            button_events |= EVT_B2_PRESS;
+            valid_press = true;
+        }
+
+        if (status & B3_PIN){
+            button_events |= EVT_B3_PRESS;
+            valid_press = true;
+        }
+
+        //se abbiamo registrato una pressione valida, block for 50ms
+        // 5 ticks * 10ms = 50ms
+        if(valid_press){
+            debounce_countdown = 5;
+        }
     }
 }
 
