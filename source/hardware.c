@@ -161,20 +161,58 @@ void hwInit(void)
 }
 
 void pauseHw(void){
-    // TODO!
+
+    //OFF everything
+    GPIO_setOutputLowOnPin(FAN_PORT, FAN_PIN);
+    GPIO_setOutputLowOnPin(PUMP_PORT, PUMP_PIN);
+    GPIO_setOutputLowOnPin(RESISTOR_PORT, RESISTOR_PIN);
+    GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
+
+    //disable interrupt timer (stop counter)
+    Interrupt_disableInterrupt(INT_TA1_0);
 }
 
 void resumeHw(void){
-    // TODO!
+
+    //reume interrupt timer
+    Interrupt_enableInterrupt(INT_TA1_0);
+    updateHw();
 }
 
 void updateHw(void){
-    // TODO!
     // Update hardware based on the variables:
     // fan_state
     // pump_state
     // resistor_state
     // humidifier_state
+
+    // 1. FAN_STATE
+    if(fan_state){
+        GPIO_setOutputHighOnPin(FAN_PORT, FAN_PIN);
+    }else{
+        GPIO_setOutputLowOnPin(FAN_PORT, FAN_PIN);
+    }
+
+    // 2. PUMP_STATE
+    if(pump_state){
+        GPIO_setOutputHighOnPin(PUMP_PORT, PUMP_PIN);
+    }else{
+        GPIO_setOutputLowOnPin(PUMP_PORT, PUMP_PIN);
+    }
+
+    // 3. RESISTOR_STATE
+    if(resistor_state){
+        GPIO_setOutputHighOnPin(RESISTOR_PORT, RESISTOR_PIN);
+    }else{
+        GPIO_setOutputLowOnPin(RESISTOR_PORT, RESISTOR_PIN);
+    }
+
+    // 4. HUMIDIFIER_STATE
+    if(humidifier_state){
+        GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
+    }else{
+        GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
+    }
 }
 
 
