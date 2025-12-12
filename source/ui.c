@@ -2,12 +2,14 @@
 #include "LcdDriver/Crystalfontz128x128_ST7735.h"
 #include <ti/devices/msp432p4xx/inc/msp.h>
 #include <ti/grlib/grlib.h>
+
 #include <stdint.h>
 #include <stdio.h>
-
 #include "hardware.h"
 #include "states.h"
 #include "ui.h"
+
+
 
 
 void graphicsInit(void)

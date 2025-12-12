@@ -2,12 +2,13 @@
 #include "LcdDriver/Crystalfontz128x128_ST7735.h"
 #include <ti/devices/msp432p4xx/inc/msp.h>
 #include <ti/grlib/grlib.h>
+
 #include <stdint.h>
 #include <stdio.h>
-
 #include "hardware.h"
 #include "states.h"
 #include "ui.h"
+
 
 
 // ====== VARIABLES & CONSTANTS ======
@@ -44,8 +45,12 @@ bool fan_state =        false;
 bool pump_state =       false;
 bool resistor_state =   false;
 bool humidifier_state = false;
-uint_fast8_t humidity_sensor_value =    0;
-uint_fast8_t temperature_sensor_value = 0;
+
+uint_fast8_t humidity_sensor_value = 50;
+uint_fast8_t temperature_sensor_value = 20;
+
+//uint_fast8_t humidity_sensor_value =    0;
+//uint_fast8_t temperature_sensor_value = 0;
 
     // Mi sembrava che ci fosse un modo in C per non dire il tipo di una costante
     // This grants approx 4 interrupts a second - version given by professor in accelerometer_lcd.c
@@ -54,6 +59,28 @@ uint_fast8_t temperature_sensor_value = 0;
     // Should be ok for all our interrupt purposes...
 //#define TIMER_PERIOD    0xFFFF
 #define TIMER_PERIOD 7500 //timer A1 count 100Hz (10ms)
+
+
+// ==== NEW TEMP. FUNCTION: READ SENSOR ====
+// call this from fn_AUTOMATIC() in states.c
+void readSensors(void){
+    static int sim_counter = 0;
+    sim_counter++;
+
+    if (sim_counter > 10){
+        sim_counter = 0;
+        if (resistor_state) temperature_sensor_value++;
+        else if (fan_state) temperature_sensor_value--;
+
+        //natural fluctuqation to simulate day (?)
+        else if (temperature_sensor_value < 28) temperature_sensor_value++;
+
+        //safety clamps for simulation
+        if (temperature_sensor_value > 40) temperature_sensor_value = 40;
+        if (temperature_sensor_value < 10) temperature_sensor_value = 10;
+    }    
+}
+
 
 // whatever graphics context is
 Graphics_Context g_sContext;
@@ -176,8 +203,8 @@ void resumeHw(void){
 
     //reume interrupt timer
     Interrupt_enableInterrupt(INT_TA1_0);
-    updateHw();
-}
+    updateHw()
+;}
 
 void updateHw(void){
     // Update hardware based on the variables:
@@ -187,32 +214,22 @@ void updateHw(void){
     // humidifier_state
 
     // 1. FAN_STATE
-    if(fan_state){
-        GPIO_setOutputHighOnPin(FAN_PORT, FAN_PIN);
-    }else{
-        GPIO_setOutputLowOnPin(FAN_PORT, FAN_PIN);
-    }
+    if(fan_state) GPIO_setOutputHighOnPin(FAN_PORT, FAN_PIN);
+    else GPIO_setOutputLowOnPin(FAN_PORT, FAN_PIN);
 
-    // 2. PUMP_STATE
-    if(pump_state){
-        GPIO_setOutputHighOnPin(PUMP_PORT, PUMP_PIN);
-    }else{
-        GPIO_setOutputLowOnPin(PUMP_PORT, PUMP_PIN);
-    }
-
+    // 2. PUMP_STATE 
+    // TODO: safety check for level of water
+    // if water level HIGH --> open circuit (no water), LOW --> close circuit (water)
+    if(pump_state) GPIO_setOutputHighOnPin(PUMP_PORT, PUMP_PIN);
+    else GPIO_setOutputLowOnPin(PUMP_PORT, PUMP_PIN);
+    
     // 3. RESISTOR_STATE
-    if(resistor_state){
-        GPIO_setOutputHighOnPin(RESISTOR_PORT, RESISTOR_PIN);
-    }else{
-        GPIO_setOutputLowOnPin(RESISTOR_PORT, RESISTOR_PIN);
-    }
+    if(resistor_state) GPIO_setOutputHighOnPin(RESISTOR_PORT, RESISTOR_PIN);
+    else GPIO_setOutputLowOnPin(RESISTOR_PORT, RESISTOR_PIN);
 
     // 4. HUMIDIFIER_STATE
-    if(humidifier_state){
-        GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
-    }else{
-        GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
-    }
+    if(humidifier_state) GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
+    else GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
 }
 
 

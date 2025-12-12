@@ -2,11 +2,13 @@
 #include "LcdDriver/Crystalfontz128x128_ST7735.h"
 #include <ti/devices/msp432p4xx/inc/msp.h>
 #include <ti/grlib/grlib.h>
+
 #include <stdint.h>
 #include <stdio.h>
-
 #include "hardware.h"
 #include "states.h"
+#include "ui.h"
+
 
 
 // ====== VARIABLES & CONSTANTS ======
@@ -41,11 +43,73 @@ void fn_MANUAL(){
         current_state = NUM_STATES;
 }
 
-void fn_AUTOMATIC(){
-        automatic();
-        // Change from num_states to real state, used as a way to raise "not implemented" error
-        current_state = NUM_STATES;
+
+// ===== TEST ====
+
+void fn_AUTOMATIC(void){
+
+    // 1. Simulate / Read sensors
+    readSensors();
+
+    // 2. LOGIC
+    int buffer = 1;
+    bool state_changed = false;
+
+    // check temperature
+    if (temperature_sensor_value > (target_temp_c + buffer)){
+        if (!fan_state){
+            fan_state = true;
+            resistor_state = false;
+            state_changed = true;
+            printf("LOGIC: Too Hot (%d > %d) -> FAN ON", temperature_sensor_value, target_temp_c);
+        }
+    }
+    else if (temperature_sensor_value < (target_temp_c - buffer)){
+        if (!resistor_state){
+            fan_state = false;
+            resistor_state = true;
+            state_changed = true;
+            printf("LOGIC: Too Cold (%d < %d) -> RESISTOR ON", temperature_sensor_value, target_temp_c);
+        }
+    }
+
+    //Check Humidity
+    //Only check this occasionally based on timer_flag
+    if (timer_flag){
+        timer_flag = false;
+
+        if (humidity_sensor_value < target_humidity_pct){
+            if (!pump_state){
+                pump_state = true;
+                state_changed = true;
+                printf("LOGIC: Dry Soil (%d < %d) --> PUMP ON", humidity_sensor_value, target_humidity_pct);
+            }
+        }
+        else if (pump_state){
+            pump_state = false;
+            state_changed = true;
+            printf("LOGIC: Soil Ok --> PUMP OFF");
+        }
+    }
+
+    //Debug print to console every timer tick
+    printf("STATUS: Temp = %d (Tg %d) | Hum = %d (Tg %d)", temperature_sensor_value, target_temp_c, humidity_sensor_value, target_humidity_pct);
+
+    // 3. Apply to Hardware
+    if(state_changed) updateHw();
 }
+
+// ==== END TEST ====
+
+
+
+/*
+void fn_AUTOMATIC(void){
+    //automatic();
+    // Change from num_states toreal state, used as a way to raise "not implemented" error
+    //current_state = NUM_STATES;
+}
+*/
 
 
 void manual(){
