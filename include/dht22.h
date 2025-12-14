@@ -1,8 +1,12 @@
 #ifndef DHT22_H
 #define DHT22_H
 
+#include <ti/devices/msp432p4xx/inc/msp.h>
 #include <stdint.h>
 #include <stdbool.h>
+
+#define DHT22_PORT P2
+#define DHT22_PIN BIT5
 
 // ==== FIXED POINT ARITHMETIC ==== 
 //paranoia mia per non usare troppo spazio? forse, fatemi sapere
@@ -29,3 +33,5 @@ bool DHT22_Read(DHT22_Data_t *data);
 void DHT22_PrintData(const DHT22_Data_t *data);
 
 #endif
+
+

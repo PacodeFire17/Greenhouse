@@ -25,8 +25,8 @@ const uint_fast8_t PUMP_PORT =                  GPIO_PORT_P2;
 const uint_fast8_t SWITCH_PORT =                GPIO_PORT_P2;
 const uint_fast8_t RESISTOR_PORT =              GPIO_PORT_P3;
 const uint_fast8_t HUMIDIFIER_PORT =            GPIO_PORT_P4;
-const uint_fast8_t HUMIDITY_SENSOR_PORT =       GPIO_PORT_P5;
-const uint_fast8_t TEMPERATURE_SENSOR_PORT =    GPIO_PORT_P6;
+const uint_fast8_t HUMIDITY_SENSOR_PORT =       GPIO_PORT_P2;   //gemini suggerisce di cancellare la seguente riga
+const uint_fast8_t TEMPERATURE_SENSOR_PORT =    GPIO_PORT_P2;   //gemini suggerisce di cancellare la seguente riga
 
 // Pins (equally arbitrary)
 const uint_fast16_t B1_PIN =                    GPIO_PIN1; //don't change
@@ -37,8 +37,8 @@ const uint_fast16_t PUMP_PIN =                  GPIO_PIN1;
 const uint_fast16_t SWITCH_PIN =                GPIO_PIN2;
 const uint_fast16_t RESISTOR_PIN =              GPIO_PIN2;
 const uint_fast16_t HUMIDIFIER_PIN =            GPIO_PIN3;
-const uint_fast16_t HUMIDITY_SENSOR_PIN =       GPIO_PIN4;
-const uint_fast16_t TEMPERATURE_SENSOR_PIN =    GPIO_PIN5;
+const uint_fast16_t HUMIDITY_SENSOR_PIN =       GPIO_PIN5;  //gemini suggerisce di cancellare la seguente riga
+const uint_fast16_t TEMPERATURE_SENSOR_PIN =    GPIO_PIN5;  //gemini suggerisce di cancellare la seguente riga
 
 // Status
 bool fan_state =        false;
@@ -46,11 +46,8 @@ bool pump_state =       false;
 bool resistor_state =   false;
 bool humidifier_state = false;
 
-uint_fast8_t humidity_sensor_value = 50;
-uint_fast8_t temperature_sensor_value = 20;
-
-//uint_fast8_t humidity_sensor_value =    0;
-//uint_fast8_t temperature_sensor_value = 0;
+uint_fast8_t humidity_sensor_value =    0;
+uint_fast8_t temperature_sensor_value = 0;
 
     // Mi sembrava che ci fosse un modo in C per non dire il tipo di una costante
     // This grants approx 4 interrupts a second - version given by professor in accelerometer_lcd.c
@@ -59,28 +56,6 @@ uint_fast8_t temperature_sensor_value = 20;
     // Should be ok for all our interrupt purposes...
 //#define TIMER_PERIOD    0xFFFF
 #define TIMER_PERIOD 7500 //timer A1 count 100Hz (10ms)
-
-
-// ==== NEW TEMP. FUNCTION: READ SENSOR ====
-// call this from fn_AUTOMATIC() in states.c
-void readSensors(void){
-    static int sim_counter = 0;
-    sim_counter++;
-
-    if (sim_counter > 10){
-        sim_counter = 0;
-        if (resistor_state) temperature_sensor_value++;
-        else if (fan_state) temperature_sensor_value--;
-
-        //natural fluctuqation to simulate day (?)
-        else if (temperature_sensor_value < 28) temperature_sensor_value++;
-
-        //safety clamps for simulation
-        if (temperature_sensor_value > 40) temperature_sensor_value = 40;
-        if (temperature_sensor_value < 10) temperature_sensor_value = 10;
-    }    
-}
-
 
 // whatever graphics context is
 Graphics_Context g_sContext;
@@ -243,6 +218,7 @@ void init(){
     humidifier_state = false;
     humidity_sensor_value =    0;
     temperature_sensor_value = 0;
+    DHT22_Init();
     graphicsInit();
     hwInit();
     updateHw();
