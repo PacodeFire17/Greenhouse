@@ -9,8 +9,8 @@ extern bool fan_state;
 extern bool pump_state;
 extern bool resistor_state;
 extern bool humidifier_state;
-extern uint_fast8_t humidity_sensor_value;
-extern uint_fast8_t temperature_sensor_value;
+extern int16_t humidity_sensor_value;
+extern int16_t temperature_sensor_value;
 extern volatile bool timer_flag;
 extern volatile uint8_t button_events;
 

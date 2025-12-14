@@ -8,6 +8,7 @@
 #include "hardware.h"
 #include "states.h"
 #include "ui.h"
+#include "dht22.h"
 
 
 

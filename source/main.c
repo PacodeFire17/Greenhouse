@@ -8,7 +8,7 @@
 #include "hardware.h"
 #include "states.h"
 #include "ui.h"
-
+#include "dht22.h"
 
 // --- PERSISTENCE (NOINIT) ---
 // This instructs the linker NOT to initialize this variable to 0 on boot.

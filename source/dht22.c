@@ -1,3 +1,8 @@
+#include <stdint.h>
+#include <stdio.h>
+#include "hardware.h"
+#include "states.h"
+#include "ui.h"
 #include "dht22.h"
 
 // Helper: Delay bloccanti usando SysTick

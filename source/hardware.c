@@ -8,6 +8,7 @@
 #include "hardware.h"
 #include "states.h"
 #include "ui.h"
+#include "dht22.h"
 
 
 
@@ -25,8 +26,8 @@ const uint_fast8_t PUMP_PORT =                  GPIO_PORT_P2;
 const uint_fast8_t SWITCH_PORT =                GPIO_PORT_P2;
 const uint_fast8_t RESISTOR_PORT =              GPIO_PORT_P3;
 const uint_fast8_t HUMIDIFIER_PORT =            GPIO_PORT_P4;
-const uint_fast8_t HUMIDITY_SENSOR_PORT =       GPIO_PORT_P2;   //gemini suggerisce di cancellare la seguente riga
-const uint_fast8_t TEMPERATURE_SENSOR_PORT =    GPIO_PORT_P2;   //gemini suggerisce di cancellare la seguente riga
+//const uint_fast8_t HUMIDITY_SENSOR_PORT =       GPIO_PORT_P2;   //gemini suggerisce di cancellare la seguente riga
+//const uint_fast8_t TEMPERATURE_SENSOR_PORT =    GPIO_PORT_P2;   //gemini suggerisce di cancellare la seguente riga
 
 // Pins (equally arbitrary)
 const uint_fast16_t B1_PIN =                    GPIO_PIN1; //don't change
@@ -37,8 +38,8 @@ const uint_fast16_t PUMP_PIN =                  GPIO_PIN1;
 const uint_fast16_t SWITCH_PIN =                GPIO_PIN2;
 const uint_fast16_t RESISTOR_PIN =              GPIO_PIN2;
 const uint_fast16_t HUMIDIFIER_PIN =            GPIO_PIN3;
-const uint_fast16_t HUMIDITY_SENSOR_PIN =       GPIO_PIN5;  //gemini suggerisce di cancellare la seguente riga
-const uint_fast16_t TEMPERATURE_SENSOR_PIN =    GPIO_PIN5;  //gemini suggerisce di cancellare la seguente riga
+//const uint_fast16_t HUMIDITY_SENSOR_PIN =       GPIO_PIN5;  //gemini suggerisce di cancellare la seguente riga
+//const uint_fast16_t TEMPERATURE_SENSOR_PIN =    GPIO_PIN5;  //gemini suggerisce di cancellare la seguente riga
 
 // Status
 bool fan_state =        false;
@@ -46,8 +47,8 @@ bool pump_state =       false;
 bool resistor_state =   false;
 bool humidifier_state = false;
 
-uint_fast8_t humidity_sensor_value =    0;
-uint_fast8_t temperature_sensor_value = 0;
+int16_t humidity_sensor_value =    0;
+int16_t temperature_sensor_value = 0;
 
     // Mi sembrava che ci fosse un modo in C per non dire il tipo di una costante
     // This grants approx 4 interrupts a second - version given by professor in accelerometer_lcd.c
@@ -160,6 +161,8 @@ void hwInit(void)
     Interrupt_enableMaster();
     // Re-enable watchdog timer as well, not sure how
     // TODO!
+
+    DHT22_Init();
 }
 
 void pauseHw(void){
@@ -291,4 +294,33 @@ void PORT1_IRQHandler(void)
         }
     }
 }
+
+
+
+void readSensors(void){
+
+    // TIMING PROTECTION
+    // assume this function is called every 10ms from main loop or timer
+    // read sensor 2 seconds (200 * 10ms = 2000ms)
+    static int read_prescaler = 0;
+
+    if (++read_prescaler < 200){
+        return;
+    }
+    read_prescaler = 0; //reset counter
+
+    DHT22_Data_t data;
+
+    //attempt to read
+    if (DHT22_Read(&data)){
+        //valid reading --> update global variables
+        temperature_sensor_value = data.temperature;
+        humidity_sensor_value = data.humidity;
+    }
+    else {
+        //TODO: add error flag
+    }
+}
+
+
 

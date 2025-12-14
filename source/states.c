@@ -8,6 +8,7 @@
 #include "hardware.h"
 #include "states.h"
 #include "ui.h"
+#include "dht22.h"
 
 
 
@@ -16,9 +17,9 @@
 State_t current_state = STATE_INIT;
 
 // Sample values for now
-int target_water_ml = 100;
-int target_humidity_pct = 50;
-int target_temp_c = 25;
+int target_water_ml = 100;      
+int target_humidity_pct = 50;       // !! TENERE CONTO CHE I VALORI DAL DHT22 SONO = target_humidity_pct * 10
+int target_temp_c = 25;             // !! TENERE CONTO CHE I VALORI DAL DHT22 SONO = target_temp_c * 10
 
 #define WATER_MAX   500
 #define HUM_MAX     100
@@ -44,72 +45,42 @@ void fn_MANUAL(){
 }
 
 
-// ===== TEST ====
 
-void fn_AUTOMATIC(void){
-
-    // 1. Simulate / Read sensors
-    readSensors();
-
-    // 2. LOGIC
-    int buffer = 1;
-    bool state_changed = false;
-
-    // check temperature
-    if (temperature_sensor_value > (target_temp_c + buffer)){
-        if (!fan_state){
-            fan_state = true;
-            resistor_state = false;
-            state_changed = true;
-            printf("LOGIC: Too Hot (%d > %d) -> FAN ON", temperature_sensor_value, target_temp_c);
-        }
-    }
-    else if (temperature_sensor_value < (target_temp_c - buffer)){
-        if (!resistor_state){
-            fan_state = false;
-            resistor_state = true;
-            state_changed = true;
-            printf("LOGIC: Too Cold (%d < %d) -> RESISTOR ON", temperature_sensor_value, target_temp_c);
-        }
-    }
-
-    //Check Humidity
-    //Only check this occasionally based on timer_flag
-    if (timer_flag){
-        timer_flag = false;
-
-        if (humidity_sensor_value < target_humidity_pct){
-            if (!pump_state){
-                pump_state = true;
-                state_changed = true;
-                printf("LOGIC: Dry Soil (%d < %d) --> PUMP ON", humidity_sensor_value, target_humidity_pct);
-            }
-        }
-        else if (pump_state){
-            pump_state = false;
-            state_changed = true;
-            printf("LOGIC: Soil Ok --> PUMP OFF");
-        }
-    }
-
-    //Debug print to console every timer tick
-    printf("STATUS: Temp = %d (Tg %d) | Hum = %d (Tg %d)", temperature_sensor_value, target_temp_c, humidity_sensor_value, target_humidity_pct);
-
-    // 3. Apply to Hardware
-    if(state_changed) updateHw();
-}
-
-// ==== END TEST ====
-
-
-
-/*
 void fn_AUTOMATIC(void){
     //automatic();
     // Change from num_states toreal state, used as a way to raise "not implemented" error
     //current_state = NUM_STATES;
+
+    // sensor reading (managed by 2s timer)
+    readSensors();
+
+    // control logic (FIXED POINT (*10))
+    // TEMPERATURE
+    if (temperature_sensor_value > (target_temp_c * 10)) {
+        fan_state = true;
+    } else {
+        fan_state = false;
+    }
+
+    //HUMIDITY
+    if (humidity_sensor_value < (target_humidity_pct * 10)) {
+        humidifier_state = true; 
+    } else {
+        humidifier_state = false;
+    }
+
+    updateHw();
+
+    //refresh of LCD
+    static int ui_refresh = 0;
+    if (++ui_refresh >= 50) { // Aggiorna ogni 50 cicli (circa 0.5s)
+        ui_refresh = 0;
+        // convert fixed point for easier reading
+        printSensorData(temperature_sensor_value / 10, humidity_sensor_value / 10);
+    }
+
 }
-*/
+
 
 
 void manual(){
