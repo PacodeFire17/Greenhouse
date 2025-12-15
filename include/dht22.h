@@ -28,7 +28,7 @@ typedef struct
     bool valid;             //validity flag
 } DHT22_Data_t;
 
-bool DHT22_Init(void);
+void DHT22_Init(void);
 bool DHT22_Read(DHT22_Data_t *data);
 void DHT22_PrintData(const DHT22_Data_t *data);
 

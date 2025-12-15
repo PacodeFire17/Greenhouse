@@ -1,9 +1,14 @@
 #include <stdint.h>
 #include <stdio.h>
+#include <ti/devices/msp432p4xx/inc/msp.h>
 #include "hardware.h"
 #include "states.h"
 #include "ui.h"
 #include "dht22.h"
+
+// Somehow these are required despite being defined in the .h file
+#define DHT_PORT P2
+#define DHT_PIN BIT5
 
 // Helper: Delay bloccanti usando SysTick
 // Necessario perché il DHT22 richiede timing in us precisi
@@ -37,6 +42,7 @@ void DHT22_Init(void) {
     DHT_PORT->DIR |= DHT_PIN;
     DHT_PORT->OUT |= DHT_PIN;
     DHT_PORT->REN |= DHT_PIN; // Abilita resistenza interna
+    // return true;
 }
 
 bool DHT22_Read(DHT22_Data_t *data) {

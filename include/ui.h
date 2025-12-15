@@ -1,6 +1,8 @@
 #ifndef UI_H
 #define UI_H
 
+#include <ti/grlib/grlib.h>
+
 // Functions
 
 // initialization
