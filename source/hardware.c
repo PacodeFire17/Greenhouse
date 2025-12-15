@@ -65,6 +65,9 @@ volatile uint8_t debounce_countdown = 0;
 // Duration of a pulse to toggle humidifier status (ms)
 const uint_fast8_t hum_pulse_duration_ms = 10;
 
+// timer per tenere accesa la pompa
+volatile uint16_t pump_timer = 0;
+
 // ====== FUNCTIONS ======
 
 void hwInit(void) {
@@ -229,6 +232,10 @@ void TA1_0_IRQHandler(void){
         debounce_countdown--;
     }
 
+    if (pump_timer > 0) {
+        pump_timer--;
+    }
+
     // timer_flag == true --> period of time has passed
     timer_flag = true;
 
@@ -338,16 +345,21 @@ void stopHum(void){
 
 // Activates the water pump
 void startPump(void){
-    GPIO_setOutputHighOnPin(PUMP_PORT, PUMP_PIN);
-    // TODO!
-    // Add resuming pump timer
+    if (!pump_state) {
+        GPIO_setOutputHighOnPin(PUMP_PORT, PUMP_PIN);
+        pump_state = true;
+
+        // avvia timer (5 secondi, 10ms tick)
+        pump_timer = 5000/10;
+    }
+
 }
 
 // Deactivates the water pump
 void stopPump(void){
     GPIO_setOutputLowOnPin(PUMP_PORT, PUMP_PIN);
-    // TODO! 
-    // Add stopping pump timer
+    pump_state = false;
+    pump_timer = 0;
 }
 
 // Activates the cooling fan
