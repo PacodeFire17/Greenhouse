@@ -26,8 +26,6 @@ const uint_fast8_t PUMP_PORT =                  GPIO_PORT_P2;
 const uint_fast8_t SWITCH_PORT =                GPIO_PORT_P2;
 const uint_fast8_t RESISTOR_PORT =              GPIO_PORT_P3;
 const uint_fast8_t HUMIDIFIER_PORT =            GPIO_PORT_P4;
-//const uint_fast8_t HUMIDITY_SENSOR_PORT =       GPIO_PORT_P2;   //gemini suggerisce di cancellare la seguente riga
-//const uint_fast8_t TEMPERATURE_SENSOR_PORT =    GPIO_PORT_P2;   //gemini suggerisce di cancellare la seguente riga
 
 // Pins (equally arbitrary)
 const uint_fast16_t B1_PIN =                    GPIO_PIN1; //don't change
@@ -38,8 +36,6 @@ const uint_fast16_t PUMP_PIN =                  GPIO_PIN1;
 const uint_fast16_t SWITCH_PIN =                GPIO_PIN2;
 const uint_fast16_t RESISTOR_PIN =              GPIO_PIN2;
 const uint_fast16_t HUMIDIFIER_PIN =            GPIO_PIN3;
-//const uint_fast16_t HUMIDITY_SENSOR_PIN =       GPIO_PIN5;  //gemini suggerisce di cancellare la seguente riga
-//const uint_fast16_t TEMPERATURE_SENSOR_PIN =    GPIO_PIN5;  //gemini suggerisce di cancellare la seguente riga
 
 // Status
 bool fan_state =        false;
