@@ -31,6 +31,8 @@ typedef struct
 void DHT22_Init(void);
 bool DHT22_Read(DHT22_Data_t *data);
 void DHT22_PrintData(const DHT22_Data_t *data);
+void Delay_ms(uint32_t ms);
+void Delay_us(uint32_t us);
 
 #endif
 

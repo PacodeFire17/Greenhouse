@@ -19,7 +19,7 @@ static void SysTick_Init_Delay(void) {
     SysTick->CTRL = 0x00000005; // Clock CPU, no interrupt
 }
 
-static void Delay_us(uint32_t us) {
+void Delay_us(uint32_t us) {
     // Tuning per 3MHz (default clock dopo reset). 
     // Se hai alzato il clock a 48MHz, moltiplica * 48
     SysTick->LOAD = (us * 3) - 1; 
@@ -27,7 +27,7 @@ static void Delay_us(uint32_t us) {
     while ((SysTick->CTRL & 0x00010000) == 0);
 }
 
-static void Delay_ms(uint32_t ms) {
+void Delay_ms(uint32_t ms) {
     uint32_t i;
     for (i = 0; i < ms; i++) {
         Delay_us(1000);
