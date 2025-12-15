@@ -64,8 +64,15 @@ void drawTitle(void)
 
 
 void printWaterSettings(int level){
-    // TODO
-    printf("Value of level = %d\n",level);
+    // Attempt at printing water level
+    // TODO! 
+    // Test if this works, if so clone to next functions 
+    // or merge into a single function with (int level, Hardware hw) and const char *names[] = {"Water", "Temperature", "Humidity"} or so
+    Graphics_clearDisplay(&g_sContext);
+    char string[20];
+    sprintf(string, "Water: %d", level);
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 64, OPAQUE_TEXT);
+    printf("Water: %d\n",level);
 }
 
 void printHumSettings(int level){
@@ -80,7 +87,12 @@ void printTempSettings(int level){
 
 // Prints on the screen the current hardware being used in manual mode
 void printCurrentHardware(Hardware hw){
-    // TODO!
-    printf("Manual operation\n");
+    // TODO! 
+    // Test if this works
+    const char *names[] = {"Fan", "Pump", "Resistor", "Humidifier"};
+    Graphics_clearDisplay(&g_sContext);
+    Graphics_drawStringCentered(&g_sContext, (int8_t *)names[hw], 
+                                AUTO_STRING_LENGTH, 64, 64, OPAQUE_TEXT);
+    printf("Hardware: %s\n", names[hw]);
 }
 

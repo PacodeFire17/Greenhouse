@@ -100,4 +100,4 @@ int main(void)
             settings_store.magic_number = 0xCAFEBABE;
         }
     }
-
+}

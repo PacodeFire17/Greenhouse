@@ -20,6 +20,11 @@ void hwInit(void);
 void updateHw(void);
 void pauseHw(void);
 void resumeHw(void);
+void startHum(void);
+void stopHum(void);
+void startPump(void);
+void stopPump(void);
+bool checkLever(void);
 
 // New: call this in FSM loop 
 void readSensors(void);

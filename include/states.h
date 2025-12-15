@@ -21,6 +21,14 @@ typedef enum
     NUM_STATES
 }State_t;
 
+typedef enum{
+    FAN,
+    PUMP,
+    RESISTOR,
+    HUMIDIFIER,
+    NUM_PIECES,
+}Hardware;
+
 typedef struct{
     State_t state;
     void (*state_function)(void);
@@ -46,5 +54,6 @@ void manual(void);
 // Renamed from "auto", probably a reserved word
 void automatic(void);
 void settings(void);
+void lever_status_set(void);
 
 #endif

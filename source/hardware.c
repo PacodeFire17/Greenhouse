@@ -18,6 +18,7 @@ const uint_fast8_t B2_PORT =                    GPIO_PORT_P1;
 const uint_fast8_t B3_PORT =                    GPIO_PORT_P1;
 const uint_fast8_t FAN_PORT =                   GPIO_PORT_P1;
 const uint_fast8_t PUMP_PORT =                  GPIO_PORT_P2;
+const uint_fast8_t LEVER_PORT =                 GPIO_PORT_P3;
 const uint_fast8_t SWITCH_PORT =                GPIO_PORT_P2;
 const uint_fast8_t RESISTOR_PORT =              GPIO_PORT_P3;
 const uint_fast8_t HUMIDIFIER_PORT =            GPIO_PORT_P4;
@@ -28,6 +29,7 @@ const uint_fast16_t B2_PIN =                    GPIO_PIN4; //don't change
 const uint_fast16_t B3_PIN =                    GPIO_PIN5; //don't change
 const uint_fast16_t FAN_PIN =                   GPIO_PIN0;
 const uint_fast16_t PUMP_PIN =                  GPIO_PIN1;
+const uint_fast16_t LEVER_PIN =                 GPIO_PIN1;
 const uint_fast16_t SWITCH_PIN =                GPIO_PIN2;
 const uint_fast16_t RESISTOR_PIN =              GPIO_PIN2;
 const uint_fast16_t HUMIDIFIER_PIN =            GPIO_PIN3;
@@ -51,10 +53,21 @@ volatile bool dht22_error_flag = false;
 // whatever graphics context is
 Graphics_Context g_sContext;
 
+// Button handler in port 1
+volatile uint8_t button_events = EVT_NONE;
+
+// variable timer flag 
+volatile bool timer_flag = false;
+
+// contatore per il blocco dei rimbalzi (time lockout)
+volatile uint8_t debounce_countdown = 0; 
+
+// Duration of a pulse to toggle humidifier status (ms)
+const uint_fast8_t hum_pulse_duration_ms = 10;
+
 // ====== FUNCTIONS ======
 
-void hwInit(void)
-{
+void hwInit(void) {
     // Halt watchdog timer and disable interrupts
     WDT_A_holdTimer();
     Interrupt_disableMaster();
@@ -140,56 +153,57 @@ void hwInit(void)
     DHT22_Init();
 }
 
+// Function to interrupt all active
 void pauseHw(void){
-
-    //OFF everything
-    GPIO_setOutputLowOnPin(FAN_PORT, FAN_PIN);
-    GPIO_setOutputLowOnPin(PUMP_PORT, PUMP_PIN);
-    GPIO_setOutputLowOnPin(RESISTOR_PORT, RESISTOR_PIN);
-    GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
+    stopFan();
+    stopResistor();
+    stopPump();
+    // Should be last since it takes 2*hum_pulse_duration_ms
+    stopHum(); 
 
     //disable interrupt timer (stop counter)
     Interrupt_disableInterrupt(INT_TA1_0);
 }
 
 void resumeHw(void){
-
+    // Updating will automatically resume everything
+    updateHw();
     //reume interrupt timer
     Interrupt_enableInterrupt(INT_TA1_0);
-    updateHw()
-;}
+}
 
+// Function to update hardware based on:
+// fan_state
+// pump_state
+// resistor_state
+// humidifier_state
 void updateHw(void){
-    // Update hardware based on the variables:
-    // fan_state
-    // pump_state
-    // resistor_state
-    // humidifier_state
+    // Update hardware based on current state variables
+    if (fan_state) 
+        startFan();
+    else 
+        stopFan();
 
-    // 1. FAN_STATE
-    if(fan_state) GPIO_setOutputHighOnPin(FAN_PORT, FAN_PIN);
-    else GPIO_setOutputLowOnPin(FAN_PORT, FAN_PIN);
+    if (pump_state) 
+        startPump();
+    else 
+        stopPump();
 
-    // 2. PUMP_STATE 
-    // TODO: safety check for level of water
-    // if water level HIGH --> open circuit (no water), LOW --> close circuit (water)
-    if(pump_state) GPIO_setOutputHighOnPin(PUMP_PORT, PUMP_PIN);
-    else GPIO_setOutputLowOnPin(PUMP_PORT, PUMP_PIN);
-    
-    // 3. RESISTOR_STATE
-    if(resistor_state) GPIO_setOutputHighOnPin(RESISTOR_PORT, RESISTOR_PIN);
-    else GPIO_setOutputLowOnPin(RESISTOR_PORT, RESISTOR_PIN);
+    if (resistor_state) 
+        startResistor();
+    else 
+        stopResistor();
 
-    // 4. HUMIDIFIER_STATE
-    if(humidifier_state) GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
-    else GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
+    if (humidifier_state) 
+        startHum();
+    else 
+        stopHum();
 
     // Service watchdog timer
     WDT_A_clearTimer();
 }
 
-
-
+// Full harware initialization function
 void init(){
     // reset the states
     // To be implemented later on: read from memory instead of resetting
@@ -203,19 +217,10 @@ void init(){
     graphicsInit();
     hwInit();
     updateHw();
-
 }
 
-
-
-// variable timer flag 
-volatile bool timer_flag = false;
-//contatore per il blocco dei rimbalzi (time lockout)
-volatile uint8_t debounce_countdown = 0; 
-
-// Timer 1 interrupt
-void TA1_0_IRQHandler(void)
-{
+// Interrupt handler for timer 1
+void TA1_0_IRQHandler(void){
     // clear hardware flag 
     Timer_A_clearCaptureCompareInterrupt(TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
 
@@ -234,13 +239,8 @@ void TA1_0_IRQHandler(void)
     WDT_A_clearTimer();
 }
 
-
-
-// Button handler in port 1
-volatile uint8_t button_events = EVT_NONE;
-
-void PORT1_IRQHandler(void)
-{
+// Interrupt handler for port 1
+void PORT1_IRQHandler(void){
     //legge lo stato di chi ha generato l'interrupt su tutta la porta
     uint32_t status = GPIO_getEnabledInterruptStatus(GPIO_PORT_P1);
 
@@ -278,8 +278,6 @@ void PORT1_IRQHandler(void)
     WDT_A_clearTimer();
 }
 
-
-
 void readSensors(void){
 
     // TIMING PROTECTION
@@ -311,5 +309,71 @@ void readSensors(void){
     }
 }
 
+// ---- Hardware start/stop functions ----
+// Required for abstraction and to manage the board for the humidifier
+// Also needed to turn on/off status led if we implement them
 
+// Starts the humidifier circuit with a pulse
+void startHum(void){
+    // TODO!
+    // Test is required here: a brief pulse should be enough to start the board
+    // The module has two settings: continuous (first click) and alternate 10s on/5s off
+    // https://ae01.alicdn.com/kf/S64754aa461d14f20ac57202706dfa4397.jpg
+    // https://ae01.alicdn.com/kf/Scc9a0b2f94fb432ebde817d22de69baei.jpg
+    GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
+    Delay_ms(hum_pulse_duration_ms);
+    GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
+}
 
+// Stops the humidifier with two pulses
+void stopHum(void){
+    GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
+    Delay_ms(hum_pulse_duration_ms);
+    GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
+    Delay_ms(hum_pulse_duration_ms);
+    GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
+    Delay_ms(hum_pulse_duration_ms);
+    GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
+}
+
+// Activates the water pump
+void startPump(void){
+    GPIO_setOutputHighOnPin(PUMP_PORT, PUMP_PIN);
+    // TODO!
+    // Add resuming pump timer
+}
+
+// Deactivates the water pump
+void stopPump(void){
+    GPIO_setOutputLowOnPin(PUMP_PORT, PUMP_PIN);
+    // TODO! 
+    // Add stopping pump timer
+}
+
+// Activates the cooling fan
+void startFan(void){
+    GPIO_setOutputHighOnPin(FAN_PORT, FAN_PIN);
+}
+
+// Deactivates the cooling fan
+void stopFan(void){
+    GPIO_setOutputLowOnPin(FAN_PORT, FAN_PIN);
+}
+
+// Activates the heating resistor
+void startResistor(void){
+    GPIO_setOutputHighOnPin(RESISTOR_PORT, RESISTOR_PIN);
+}
+
+// Deactivates the heating resistor
+void stopResistor(void){
+    GPIO_setOutputLowOnPin(RESISTOR_PORT, RESISTOR_PIN);
+}
+
+// Checks the status of the manual/auto lever.
+// Returns 1 if it is in auto, 0 if in manual.
+// Defaults to 1 in case of reading error
+bool checkLever(void){
+    // TODO!
+
+}
