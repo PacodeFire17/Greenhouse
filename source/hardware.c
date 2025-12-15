@@ -50,6 +50,8 @@ volatile bool dht22_error_flag = false;
 //timer A1 count 100Hz (10ms)
 #define TIMER_PERIOD 7500
 
+#define PUMP_TIMER_PERIOD 5000
+
 // whatever graphics context is
 Graphics_Context g_sContext;
 
@@ -349,8 +351,8 @@ void startPump(void){
         GPIO_setOutputHighOnPin(PUMP_PORT, PUMP_PIN);
         pump_state = true;
 
-        // avvia timer (5 secondi, 10ms tick)
-        pump_timer = 5000/10;
+        // avvia timer
+        pump_timer = PUMP_TIMER_PERIOD / 10;
     }
 
 }
