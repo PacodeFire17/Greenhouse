@@ -78,4 +78,9 @@ void printTempSettings(int level){
     printf("Value of level = %d\n",level);
 }
 
+// Prints on the screen the current hardware being used in manual mode
+void printCurrentHardware(Hardware hw){
+    // TODO!
+    printf("Manual operation\n");
+}
 

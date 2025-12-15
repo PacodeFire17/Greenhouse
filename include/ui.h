@@ -15,6 +15,7 @@ void drawTitle(void);
 void printWaterSettings(int level);
 void printHumSettings(int level);
 void printTempSettings(int level);
+void printCurrentHardware(Hardware hw, bool status);
 
 // Graphic library context
 extern Graphics_Context g_sContext;
