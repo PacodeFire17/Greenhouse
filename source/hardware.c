@@ -50,6 +50,8 @@ bool humidifier_state = false;
 int16_t humidity_sensor_value =    0;
 int16_t temperature_sensor_value = 0;
 
+volatile bool dht22_error_flag = false;
+
     // Mi sembrava che ci fosse un modo in C per non dire il tipo di una costante
     // This grants approx 4 interrupts a second - version given by professor in accelerometer_lcd.c
 // #define TIMER_PERIOD    0x2DC6
@@ -313,12 +315,18 @@ void readSensors(void){
 
     //attempt to read
     if (DHT22_Read(&data)){
-        //valid reading --> update global variables
-        temperature_sensor_value = data.temperature;
-        humidity_sensor_value = data.humidity;
+       //check for corrupt data
+        if (data.temperature > -40 && data.temperature < 80 &&
+            data.humidity >= 0 && data.humidity <= 100) {
+            temperature_sensor_value = data.temperature;
+            humidity_sensor_value = data.humidity;
+            dht_error_flat = false;  //valid reading --> update global variables
+        } else {
+            dht22_error_flag = true;
+        }
     }
     else {
-        //TODO: add error flag
+        dht22_error_flag = true;
     }
 }
 
