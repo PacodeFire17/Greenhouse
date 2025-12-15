@@ -10,12 +10,7 @@
 #include "ui.h"
 #include "dht22.h"
 
-
-
 // ====== VARIABLES & CONSTANTS ======
-
-// Definition of hardware pins desired status
-// Check when running that this types are correct
 
 // Ports (absolutely arbitrary and to be redefined, except for buttons)
 const uint_fast8_t B1_PORT =                    GPIO_PORT_P1;
@@ -42,19 +37,16 @@ bool fan_state =        false;
 bool pump_state =       false;
 bool resistor_state =   false;
 bool humidifier_state = false;
-
 int16_t humidity_sensor_value =    0;
 int16_t temperature_sensor_value = 0;
 
+// TODO!
+// Check before release that the pins and ports defined match the hardware
+
 volatile bool dht22_error_flag = false;
 
-    // Mi sembrava che ci fosse un modo in C per non dire il tipo di una costante
-    // This grants approx 4 interrupts a second - version given by professor in accelerometer_lcd.c
-// #define TIMER_PERIOD    0x2DC6
-    // Slower version, approx. 0.7/sec
-    // Should be ok for all our interrupt purposes...
-//#define TIMER_PERIOD    0xFFFF
-#define TIMER_PERIOD 7500 //timer A1 count 100Hz (10ms)
+//timer A1 count 100Hz (10ms)
+#define TIMER_PERIOD 7500
 
 // whatever graphics context is
 Graphics_Context g_sContext;
@@ -63,9 +55,8 @@ Graphics_Context g_sContext;
 
 void hwInit(void)
 {
+    // Halt watchdog timer and disable interrupts
     WDT_A_holdTimer();
-
-    // Apparently it is good practice to disable interrupts globally while configuring hardware
     Interrupt_disableMaster();
 
     // Timer
@@ -79,8 +70,8 @@ void hwInit(void)
             TIMER_A_DO_CLEAR
     };
 
-    Timer_A_configureUpMode(TIMER_A1_BASE, &upConfig);
     // Interrupts for timer
+    Timer_A_configureUpMode(TIMER_A1_BASE, &upConfig);
     Interrupt_enableInterrupt(INT_TA1_0);
     Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_UP_MODE);
 
@@ -106,7 +97,7 @@ void hwInit(void)
     GPIO_setAsOutputPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
     GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
 
-    // Buttons - these are actually hardcoded instead of using the variables since they cannot be moved
+    // Buttons - these are actually hard coded instead of using the variables since they cannot be moved
     //B1 = P1.1
     GPIO_setAsInputPinWithPullUpResistor(B1_PORT, B1_PIN);
     GPIO_interruptEdgeSelect(B1_PORT, B1_PIN, GPIO_HIGH_TO_LOW_TRANSITION);
@@ -128,37 +119,23 @@ void hwInit(void)
     // Enable interrupts
     Interrupt_enableInterrupt(INT_PORT1);
 
-
-    // Set input pins
-    // TODO! should be something like this:
-    //    GPIO_setAsInputPin(HUMIDITY_SENSOR_PORT, HUMIDITY_SENSOR_PIN);
-    //    GPIO_setAsInputPin(TEMPERATURE_SENSOR_PORT, TEMPERATURE_SENSOR_PIN);
-
-    // If it is instead pull up/down:
-    // GPIO_setAsInputPinWithPullUpResistor(...);
-    // GPIO_setAsInputPinWithPullDownResistor(...);
-
-    /* Set the core voltage level to VCORE1 */
+    // Set the core voltage level to VCORE1
     PCM_setCoreVoltageLevel(PCM_VCORE1);
 
-    /* Set 2 flash wait states for Flash bank 0 and 1*/
+    // Set 2 flash wait states for Flash bank 0 and 1
     FlashCtl_setWaitState(FLASH_BANK0, 2);
     FlashCtl_setWaitState(FLASH_BANK1, 2);
 
-    /* Initializes Clock System */
+    // Initializes Clock System
     CS_setDCOCenteredFrequency(CS_DCO_FREQUENCY_48);
     CS_initClockSignal(CS_MCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
     CS_initClockSignal(CS_HSMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
     CS_initClockSignal(CS_SMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
     CS_initClockSignal(CS_ACLK, CS_REFOCLK_SELECT, CS_CLOCK_DIVIDER_1);
 
-    // Not used, to be replaced with other initialization for what we use
-    //    _accelSensorInit();
-
-    // Re-enable Interrupts
+    // Re-enable Interrupts and watchdog
     Interrupt_enableMaster();
-    // Re-enable watchdog timer as well, not sure how
-    // TODO!
+    WDT_A_startTimer();
 
     DHT22_Init();
 }
@@ -206,6 +183,9 @@ void updateHw(void){
     // 4. HUMIDIFIER_STATE
     if(humidifier_state) GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
     else GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
+
+    // Service watchdog timer
+    WDT_A_clearTimer();
 }
 
 
@@ -249,6 +229,9 @@ void TA1_0_IRQHandler(void)
 
     // implement normal mode interrupt functions
     // TODO!
+
+    // Service watchdog timer
+    WDT_A_clearTimer();
 }
 
 
@@ -291,6 +274,8 @@ void PORT1_IRQHandler(void)
             debounce_countdown = 5;
         }
     }
+    // Service watchdog timer
+    WDT_A_clearTimer();
 }
 
 
