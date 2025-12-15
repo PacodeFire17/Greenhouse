@@ -1,6 +1,2 @@
 Debug
-# *.o
-# *.out
-# *.opt
-# *.obj
 .vscode
