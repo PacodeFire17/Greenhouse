@@ -320,7 +320,7 @@ void readSensors(void){
             data.humidity >= 0 && data.humidity <= 100) {
             temperature_sensor_value = data.temperature;
             humidity_sensor_value = data.humidity;
-            dht_error_flat = false;  //valid reading --> update global variables
+            dht22_error_flag = false;  //valid reading --> update global variables
         } else {
             dht22_error_flag = true;
         }
