@@ -34,6 +34,7 @@ static void Delay_ms(uint32_t ms) {
     }
 }
 
+// Note: this was defined as bool in the .h file. Changed that to match the signature of this function
 void DHT22_Init(void) {
     SysTick_Init_Delay();
     
@@ -42,7 +43,6 @@ void DHT22_Init(void) {
     DHT_PORT->DIR |= DHT_PIN;
     DHT_PORT->OUT |= DHT_PIN;
     DHT_PORT->REN |= DHT_PIN; // Abilita resistenza interna
-    // return true;
 }
 
 bool DHT22_Read(DHT22_Data_t *data) {
