@@ -25,7 +25,7 @@ int target_temp_c = 25;             // !! TENERE CONTO CHE I VALORI DAL DHT22 SO
 #define HUM_MAX     100
 #define TEMP_MAX    40
 #define TEMP_MIN    25
-#define WATER_STEP  10
+#define WATER_STEP  10              // Do not change to a non multiple of 10 to prevent errors; see T32_INT2_IRQHandler in hardware.c
 #define HUM_STEP    5
 #define TEMP_STEP   1
 
@@ -148,25 +148,30 @@ void automatic(){
     // Change from num_states toreal state, used as a way to raise "not implemented" error
     //current_state = NUM_STATES;
 
-    // sensor reading (managed by 2s timer)
-    readSensors();
+    // Sensor value update (managed by interrupt now; moved all logic depending on this value in the if)
+    if (three_s_flag) {
+        three_s_flag = false;
+        readSensors();
+    
 
-    // control logic (FIXED POINT (*10))
-    // TEMPERATURE
-    if (temperature_sensor_value > (target_temp_c * 10)) {
-        fan_state = true;
-    } else {
-        fan_state = false;
+        // control logic (FIXED POINT (*10))
+        // Added a larger boundary to prevent excessive fluctuation
+        // TEMPERATURE
+        if (temperature_sensor_value > ((target_temp_c + TEMP_STEP) * 10)) {
+            fan_state = true;
+        } else if (temperature_sensor_value < (target_temp_c * 10)){
+            fan_state = false;
+        }
+
+        // HUMIDITY
+        if (humidity_sensor_value < (target_humidity_pct - HUM_STEP) * 10) {
+            humidifier_state = true;
+        } else if (humidity_sensor_value > (target_humidity_pct * 10)) {
+            humidifier_state = false;
+        }
+
+        updateHw();
     }
-
-    // HUMIDITY
-    if (humidity_sensor_value < (target_humidity_pct * 10)) {
-        humidifier_state = true; 
-    } else {
-        humidifier_state = false;
-    }
-
-    updateHw();
 
     // refresh of LCD
     static int ui_refresh = 0;
