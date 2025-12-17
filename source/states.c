@@ -17,17 +17,9 @@
 State_t current_state = STATE_INIT;
 
 // Sample values for now
-int target_water_ml = 100;      
+int target_water_ml = 150;      
 int target_humidity_pct = 50;       // !! TENERE CONTO CHE I VALORI DAL DHT22 SONO = target_humidity_pct * 10
 int target_temp_c = 25;             // !! TENERE CONTO CHE I VALORI DAL DHT22 SONO = target_temp_c * 10
-
-#define WATER_MAX   500
-#define HUM_MAX     100
-#define TEMP_MAX    40
-#define TEMP_MIN    25
-#define WATER_STEP  10              // Do not change to a non multiple of 10 to prevent errors; see T32_INT2_IRQHandler in hardware.c
-#define HUM_STEP    5
-#define TEMP_STEP   1
 
 Hardware current_hw = PUMP;
 

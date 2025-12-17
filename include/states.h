@@ -29,6 +29,15 @@ typedef enum{
     NUM_PIECES,
 }Hardware;
 
+// Definitions moved for accessibility
+#define WATER_MAX   510
+#define HUM_MAX     100
+#define TEMP_MAX    40
+#define TEMP_MIN    25
+#define WATER_STEP  30              // Do not change to a non multiple of 30 to prevent errors; see T32_INT2_IRQHandler in hardware.c
+#define HUM_STEP    5
+#define TEMP_STEP   1
+
 typedef struct{
     State_t state;
     void (*state_function)(void);

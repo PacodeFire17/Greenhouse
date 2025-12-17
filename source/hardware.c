@@ -34,16 +34,13 @@ const uint_fast16_t SWITCH_PIN =                GPIO_PIN2;
 const uint_fast16_t RESISTOR_PIN =              GPIO_PIN2;
 const uint_fast16_t HUMIDIFIER_PIN =            GPIO_PIN3;
 
-// Constants
-const uint16_t CYCLES_PER_HOUR = 1200;
-
-// Status
+// Status flags
 bool fan_state =        false;
 bool pump_state =       false;
 bool resistor_state =   false;
 bool humidifier_state = false;
 bool pump_is_watering = false;
-bool pump_timer_state = true;
+bool pump_timer_state = false;
 int16_t humidity_sensor_value =    0;
 int16_t temperature_sensor_value = 0;
 
@@ -55,7 +52,8 @@ volatile bool dht22_error_flag = false;
 //timer A1 count 100Hz (10ms)
 #define TIMER_PERIOD 7500
 
-#define PUMP_TIMER_PERIOD 5000
+// Cycles (3s) between watering in seconds. Currently set for 12h
+#define PUMP_TIMER_PERIOD 14400
 
 // whatever graphics context is
 Graphics_Context g_sContext;
@@ -65,9 +63,7 @@ volatile uint8_t button_events = EVT_NONE;
 
 // variable timer flag 
 volatile bool timer_flag = false;
-
-// 3-second timer flag (Timer32_1)
-volatile bool three_sec_flag = false;
+volatile bool three_s_flag = false;
 
 // contatore per il blocco dei rimbalzi (time lockout)
 volatile uint8_t debounce_countdown = 0; 
@@ -75,7 +71,7 @@ volatile uint8_t debounce_countdown = 0;
 // Duration of a pulse to toggle humidifier status (ms)
 const uint_fast8_t hum_pulse_duration_ms = 10;
 
-// timer per tenere accesa la pompa
+// Dual purpose pump counter (coutns between watering cycles and for watering duration)
 volatile uint16_t pump_timer = 0;
 
 // ====== FUNCTIONS ======
@@ -162,6 +158,7 @@ void hwInit(void) {
     pump_state = false;
     resistor_state = false;
     humidifier_state = false;
+    pump_timer_state = true;
 
     // HUMIDIFY & TEMPERATURE SENSOR INIT 
     DHT22_Init();
@@ -184,11 +181,12 @@ void pauseHw(void){
     stopFan();
     stopResistor();
     stopPump();
-    // Should be last since it takes 2*hum_pulse_duration_ms
-    stopHum(); 
     // Block pump timer
     pump_timer_state = false;
+    // Should be last since it takes 2*hum_pulse_duration_ms
+    stopHum(); 
 
+    // TODO!: verify: is it actually correct to stop this?
     //disable interrupt timer (stop counter)
     Interrupt_disableInterrupt(INT_TA1_0);
 }
@@ -258,10 +256,6 @@ void TA1_0_IRQHandler(void){
         debounce_countdown--;
     }
 
-    if (pump_timer > 0) {
-        pump_timer--;
-    }
-
     // timer_flag == true --> period of time has passed
     timer_flag = true;
 
@@ -273,15 +267,45 @@ void TA1_0_IRQHandler(void){
 }
 
 // Interrupt handler for Timer32_1 (3-second interval)
+// This timer handles the updating of the values of the sensor (temperature_sensor_value, humidity_sensor_value)
+// And the pump logic, both the long timers and the start/stop to prevent settings from messing up daily watering
 void T32_INT2_IRQHandler(void){
     // Clear Timer32 interrupt flag
     Timer32_clearInterruptFlag(TIMER32_1_BASE);
 
-    // Set 3-second flag
-    three_sec_flag = true;
+    // Set flag to true; 
+    // The real call of the sensor read is outside the interrupt, in automatic mode
+    three_s_flag = true;
+    
+    // target_water_ml -> ml/day
+    // 3s/cycle
+    // 300ml/min -> 300/20 = 15ml/cycle
+    // Supposing we water the plant every 12h (12*3600/3=14400 cycles)
+    // Cycles/watering = target_water_ml/2/15
+    // For 150ml, cycles = 150/30 = 50
 
+    // Only perform this logic if the pump is not paused
     if (pump_timer_state) {
-        if (pump_is_watering)
+        pump_timer--;
+        if (pump_timer <= 0){
+            if (pump_is_watering) {
+                // Case pump begins new wait period
+                pump_state = false;
+                // Wait 12h
+                pump_timer = PUMP_TIMER_PERIOD;
+            } else {
+                // if target_water_ml is 0, skip directly. This ensures no unexpected behavior, such as pump turning on for a cycle
+                if (target_water_ml < WATER_STEP){
+                    pump_timer = PUMP_TIMER_PERIOD;
+                    pump_is_watering = true;
+                } else {
+                    pump_state = true;
+                    // Calculate every time in case this changed
+                    pump_timer = target_water_ml / WATER_STEP;
+                }
+            }
+            pump_is_watering = !pump_is_watering;
+        }
     }
 
     // Service watchdog timer
@@ -328,19 +352,7 @@ void PORT1_IRQHandler(void){
 }
 
 void readSensors(void){
-
-    // TIMING PROTECTION
-    // assume this function is called every 10ms from main loop or timer
-    // read sensor 2 seconds (200 * 10ms = 2000ms)
-    static int read_prescaler = 0;
-
-    if (++read_prescaler < 200){
-        return;
-    }
-    read_prescaler = 0; //reset counter
-
     DHT22_Data_t data;
-
     //attempt to read
     if (DHT22_Read(&data)){
        //check for corrupt data
@@ -387,21 +399,14 @@ void stopHum(void){
 
 // Activates the water pump
 void startPump(void){
-    if (!pump_state) {
-        GPIO_setOutputHighOnPin(PUMP_PORT, PUMP_PIN);
-        pump_state = true;
-
-        // avvia timer
-        pump_timer = PUMP_TIMER_PERIOD / 10;
-    }
-
+    // L'implementazione precedente è inutile in quanto dead code
+    // (vedi definizione di pump state) e logicamente sbagliata
+    GPIO_setOutputHighOnPin(PUMP_PORT, PUMP_PIN);
 }
 
 // Deactivates the water pump
 void stopPump(void){
     GPIO_setOutputLowOnPin(PUMP_PORT, PUMP_PIN);
-    pump_state = false;
-    pump_timer = 0;
 }
 
 // Activates the cooling fan
@@ -429,5 +434,5 @@ void stopResistor(void){
 // Defaults to 1 in case of reading error
 bool checkLever(void){
     // TODO!
-
+    return false;
 }
