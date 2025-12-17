@@ -34,11 +34,16 @@ const uint_fast16_t SWITCH_PIN =                GPIO_PIN2;
 const uint_fast16_t RESISTOR_PIN =              GPIO_PIN2;
 const uint_fast16_t HUMIDIFIER_PIN =            GPIO_PIN3;
 
+// Constants
+const uint16_t CYCLES_PER_HOUR = 1200;
+
 // Status
 bool fan_state =        false;
 bool pump_state =       false;
 bool resistor_state =   false;
 bool humidifier_state = false;
+bool pump_is_watering = false;
+bool pump_timer_state = true;
 int16_t humidity_sensor_value =    0;
 int16_t temperature_sensor_value = 0;
 
@@ -60,6 +65,9 @@ volatile uint8_t button_events = EVT_NONE;
 
 // variable timer flag 
 volatile bool timer_flag = false;
+
+// 3-second timer flag (Timer32_1)
+volatile bool three_sec_flag = false;
 
 // contatore per il blocco dei rimbalzi (time lockout)
 volatile uint8_t debounce_countdown = 0; 
@@ -151,6 +159,14 @@ void hwInit(void) {
     CS_initClockSignal(CS_SMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
     CS_initClockSignal(CS_ACLK, CS_REFOCLK_SELECT, CS_CLOCK_DIVIDER_1);
 
+    // Timer32_1 -> every 3 seconds
+    // Timer32 runs from MCLK; with prescaler 256 -> 48MHz/256 = 187500 Hz
+    // Count for 3s: 187500 * 3 = 562500
+    Timer32_initModule(TIMER32_1_BASE, TIMER32_PRESCALER_256, TIMER32_32BIT, TIMER32_PERIODIC_MODE);
+    Timer32_setCount(TIMER32_1_BASE, 562500);
+    Interrupt_enableInterrupt(INT_T32_INT2);
+    Timer32_startTimer(TIMER32_1_BASE, true);
+
     // Re-enable Interrupts and watchdog
     Interrupt_enableMaster();
     WDT_A_startTimer();
@@ -158,13 +174,15 @@ void hwInit(void) {
     DHT22_Init();
 }
 
-// Function to interrupt all active
+// Function to interrupt all active hardware
 void pauseHw(void){
     stopFan();
     stopResistor();
     stopPump();
     // Should be last since it takes 2*hum_pulse_duration_ms
     stopHum(); 
+    // Block pump timer
+    pump_timer_state = false;
 
     //disable interrupt timer (stop counter)
     Interrupt_disableInterrupt(INT_TA1_0);
@@ -173,6 +191,7 @@ void pauseHw(void){
 void resumeHw(void){
     // Updating will automatically resume everything
     updateHw();
+    pump_timer_state = true;
     //reume interrupt timer
     Interrupt_enableInterrupt(INT_TA1_0);
 }
@@ -243,6 +262,22 @@ void TA1_0_IRQHandler(void){
 
     // implement normal mode interrupt functions
     // TODO!
+
+    // Service watchdog timer
+    WDT_A_clearTimer();
+}
+
+// Interrupt handler for Timer32_1 (3-second interval)
+void T32_INT2_IRQHandler(void){
+    // Clear Timer32 interrupt flag
+    Timer32_clearInterruptFlag(TIMER32_1_BASE);
+
+    // Set 3-second flag
+    three_sec_flag = true;
+
+    if (pump_timer_state) {
+        if (pump_is_watering)
+    }
 
     // Service watchdog timer
     WDT_A_clearTimer();

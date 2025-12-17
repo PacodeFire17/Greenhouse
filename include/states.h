@@ -40,6 +40,9 @@ extern volatile uint8_t button_events; //ISR variable
 extern int target_water_ml;
 extern int target_humidity_pct;
 extern int target_temp_c;
+extern int target_water_ml;      
+extern int target_humidity_pct;  
+extern int target_temp_c;  
 
 // Functions
 void fn_SET_WATER(void);

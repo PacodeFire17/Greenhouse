@@ -12,6 +12,7 @@ extern bool humidifier_state;
 extern int16_t humidity_sensor_value;
 extern int16_t temperature_sensor_value;
 extern volatile bool timer_flag;
+extern volatile bool three_sec_flag;
 extern volatile uint8_t button_events;
 
 // Function declaration
