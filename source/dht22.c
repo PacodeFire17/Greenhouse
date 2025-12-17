@@ -20,9 +20,7 @@ static void SysTick_Init_Delay(void) {
 }
 
 void Delay_us(uint32_t us) {
-    // Tuning per 3MHz (default clock dopo reset). 
-    // Se hai alzato il clock a 48MHz, moltiplica * 48
-    SysTick->LOAD = (us * 3) - 1; 
+    SysTick->LOAD = (us * 48) - 1; //48 MHz (MSP432 clock speed)
     SysTick->VAL = 0;
     while ((SysTick->CTRL & 0x00010000) == 0);
 }

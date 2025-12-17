@@ -13,8 +13,8 @@
 // ====== VARIABLES & CONSTANTS ======
 
 // Ports (absolutely arbitrary and to be redefined, except for buttons)
-const uint_fast8_t B1_PORT =                    GPIO_PORT_P1;
-const uint_fast8_t B2_PORT =                    GPIO_PORT_P1;
+const uint_fast8_t B1_PORT =                    GPIO_PORT_P5;   //S1 button
+const uint_fast8_t B2_PORT =                    GPIO_PORT_P3;   //S2 button
 const uint_fast8_t B3_PORT =                    GPIO_PORT_P1;
 const uint_fast8_t FAN_PORT =                   GPIO_PORT_P1;
 const uint_fast8_t PUMP_PORT =                  GPIO_PORT_P2;
@@ -24,9 +24,9 @@ const uint_fast8_t RESISTOR_PORT =              GPIO_PORT_P3;
 const uint_fast8_t HUMIDIFIER_PORT =            GPIO_PORT_P4;
 
 // Pins (equally arbitrary)
-const uint_fast16_t B1_PIN =                    GPIO_PIN1; //don't change
-const uint_fast16_t B2_PIN =                    GPIO_PIN4; //don't change
-const uint_fast16_t B3_PIN =                    GPIO_PIN5; //don't change
+const uint_fast16_t B1_PIN =                    GPIO_PIN1;  //S1 button,before 1.1, now canged to 5.1
+const uint_fast16_t B2_PIN =                    GPIO_PIN5;  //S2 button, before 1.4, now changed to 3.5
+const uint_fast16_t B3_PIN =                    GPIO_PIN5;  //don't change
 const uint_fast16_t FAN_PIN =                   GPIO_PIN0;
 const uint_fast16_t PUMP_PIN =                  GPIO_PIN1;
 const uint_fast16_t LEVER_PIN =                 GPIO_PIN1;
@@ -81,32 +81,27 @@ volatile uint16_t pump_timer = 0;
 // ====== FUNCTIONS ======
 
 void hwInit(void) {
-    // Halt watchdog timer and disable interrupts
+
+    // Halt watchdog timer and disable interrupts 
     WDT_A_holdTimer();
     Interrupt_disableMaster();
 
-    // Timer
-    const Timer_A_UpModeConfig upConfig =
-    {
-            TIMER_A_CLOCKSOURCE_SMCLK,
-            TIMER_A_CLOCKSOURCE_DIVIDER_64,
-            TIMER_PERIOD,
-            TIMER_A_TAIE_INTERRUPT_DISABLE,
-            TIMER_A_CCIE_CCR0_INTERRUPT_ENABLE,
-            TIMER_A_DO_CLEAR
-    };
+    // CORE SYSTEM (POWER & FLASH)
+    // Set the core voltage level to VCORE1
+    PCM_setCoreVoltageLevel(PCM_VCORE1);
+    // Set 2 flash wait states for Flash bank 0 and 1
+    FlashCtl_setWaitState(FLASH_BANK0, 2);
+    FlashCtl_setWaitState(FLASH_BANK1, 2);    
 
-    // Interrupts for timer
-    Timer_A_configureUpMode(TIMER_A1_BASE, &upConfig);
-    Interrupt_enableInterrupt(INT_TA1_0);
-    Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_UP_MODE);
+    // CLOCK SYSTEM 
+    // Initializes Clock System
+    CS_setDCOCenteredFrequency(CS_DCO_FREQUENCY_48);
+    CS_initClockSignal(CS_MCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
+    CS_initClockSignal(CS_HSMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
+    CS_initClockSignal(CS_SMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
+    CS_initClockSignal(CS_ACLK, CS_REFOCLK_SELECT, CS_CLOCK_DIVIDER_1);
 
-    // Reinitialize variables before setting pins
-    fan_state = false;
-    pump_state = false;
-    resistor_state = false;
-    humidifier_state = false;
-
+    // GPIO (OUTPUTS)
     // Fan
     GPIO_setAsOutputPin(FAN_PORT, FAN_PIN);
     GPIO_setOutputLowOnPin(FAN_PORT, FAN_PIN);
@@ -123,41 +118,53 @@ void hwInit(void) {
     GPIO_setAsOutputPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
     GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
 
-    // Buttons - these are actually hard coded instead of using the variables since they cannot be moved
-    //B1 = P1.1
+    // GPIO (INPUTS & INTERRUPTS)
+    // B1 = S1 = P5.1
     GPIO_setAsInputPinWithPullUpResistor(B1_PORT, B1_PIN);
     GPIO_interruptEdgeSelect(B1_PORT, B1_PIN, GPIO_HIGH_TO_LOW_TRANSITION);
     GPIO_clearInterruptFlag(B1_PORT, B1_PIN);
     GPIO_enableInterrupt(B1_PORT, B1_PIN);
 
-    //B2 = P1.4
+    // B2 = S2 = P3.5
     GPIO_setAsInputPinWithPullUpResistor(B2_PORT, B2_PIN);
     GPIO_interruptEdgeSelect(B2_PORT, B2_PIN, GPIO_HIGH_TO_LOW_TRANSITION);
     GPIO_clearInterruptFlag(B2_PORT, B2_PIN);
     GPIO_enableInterrupt(B2_PORT, B2_PIN);
 
-    //B3 = P1.5
+    // B3 = P1.5
     GPIO_setAsInputPinWithPullUpResistor(B3_PORT, B3_PIN);
     GPIO_interruptEdgeSelect(B3_PORT, B3_PIN, GPIO_HIGH_TO_LOW_TRANSITION);
     GPIO_clearInterruptFlag(B3_PORT, B3_PIN);
-    GPIO_enableInterrupt(B3_PORT, B3_PIN);
+    GPIO_enableInterrupt(B3_PORT, B3_PIN);  
 
-    // Enable interrupts
+    // Enable global interrupt  
     Interrupt_enableInterrupt(INT_PORT1);
 
-    // Set the core voltage level to VCORE1
-    PCM_setCoreVoltageLevel(PCM_VCORE1);
+    // PERIPHERALS (TIMERS)
+    // Timer
+    const Timer_A_UpModeConfig upConfig =
+    {
+            TIMER_A_CLOCKSOURCE_SMCLK,              // f = 48 MHz
+            TIMER_A_CLOCKSOURCE_DIVIDER_64,         // timer_f = 750 kHz
+            TIMER_PERIOD,                           // 7500 tick = 10ms (100Hz)
+            TIMER_A_TAIE_INTERRUPT_DISABLE,
+            TIMER_A_CCIE_CCR0_INTERRUPT_ENABLE,
+            TIMER_A_DO_CLEAR
+    };
 
-    // Set 2 flash wait states for Flash bank 0 and 1
-    FlashCtl_setWaitState(FLASH_BANK0, 2);
-    FlashCtl_setWaitState(FLASH_BANK1, 2);
+    // Interrupts for timer
+    Timer_A_configureUpMode(TIMER_A1_BASE, &upConfig);
+    Interrupt_enableInterrupt(INT_TA1_0);
+    Timer_A_startCounter(TIMER_A1_BASE, TIMER_A_UP_MODE);
 
-    // Initializes Clock System
-    CS_setDCOCenteredFrequency(CS_DCO_FREQUENCY_48);
-    CS_initClockSignal(CS_MCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
-    CS_initClockSignal(CS_HSMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
-    CS_initClockSignal(CS_SMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
-    CS_initClockSignal(CS_ACLK, CS_REFOCLK_SELECT, CS_CLOCK_DIVIDER_1);
+    // VARIABLES
+    fan_state = false;
+    pump_state = false;
+    resistor_state = false;
+    humidifier_state = false;
+
+    // HUMIDIFY & TEMPERATURE SENSOR INIT 
+    DHT22_Init();
 
     // Timer32_1 -> every 3 seconds
     // Timer32 runs from MCLK; with prescaler 256 -> 48MHz/256 = 187500 Hz
@@ -170,8 +177,6 @@ void hwInit(void) {
     // Re-enable Interrupts and watchdog
     Interrupt_enableMaster();
     WDT_A_startTimer();
-
-    DHT22_Init();
 }
 
 // Function to interrupt all active hardware
