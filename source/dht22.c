@@ -120,21 +120,16 @@ bool DHT22_Read(DHT22_Data_t *data) {
         return false;
     }
 
-    // --- CONVERSIONE (Fixed Point) ---
-    // Umidità: bits[0] e bits[1]
+    // --- Conversion to Fixed Point ---
+    // Humidity: bits[0] and bits[1]
     data->humidity = (bits[0] << 8) | bits[1];
 
-    // Temperatura: bits[2] e bits[3]
+    // Temperature: bits[2] and bits[3]
     int16_t tempRaw = (bits[2] << 8) | bits[3];
-    
-    // Gestione temperatura negativa (Bit 15 è il segno nel DHT22)
+    // Negative temperature
     if (tempRaw & 0x8000) {
         tempRaw &= 0x7FFF;
         data->temperature = -tempRaw;
-    } else {
-        data->temperature = tempRaw;
-    }
-
-    data->valid = true;
+    } else { data->temperature = tempRaw; }
     return true;
 }
