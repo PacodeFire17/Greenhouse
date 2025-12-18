@@ -40,7 +40,7 @@ bool pump_state =       false;
 bool resistor_state =   false;
 bool humidifier_state = false;
 bool pump_is_watering = false;
-bool pump_timer_state = false;
+bool pump_timer_state = true;
 int16_t humidity_sensor_value =    0;
 int16_t temperature_sensor_value = 0;
 
@@ -71,8 +71,8 @@ volatile uint8_t debounce_countdown = 0;
 // Duration of a pulse to toggle humidifier status (ms)
 const uint_fast8_t hum_pulse_duration_ms = 10;
 
-// Dual purpose pump counter (coutns between watering cycles and for watering duration)
-volatile uint16_t pump_timer = 0;
+// Dual purpose pump counter (coutns between watering cycles and for watering duration), wait before starting to prevent underflow during initialization
+volatile uint16_t pump_timer = 10;
 
 // ====== FUNCTIONS ======
 
@@ -168,8 +168,9 @@ void hwInit(void) {
     // Count for 3s: 187500 * 3 = 562500
     Timer32_initModule(TIMER32_1_BASE, TIMER32_PRESCALER_256, TIMER32_32BIT, TIMER32_PERIODIC_MODE);
     Timer32_setCount(TIMER32_1_BASE, 562500);
+    Timer32_enableInterrupt(TIMER32_1_BASE);
     Interrupt_enableInterrupt(INT_T32_INT2);
-    Timer32_startTimer(TIMER32_1_BASE, true);
+    Timer32_startTimer(TIMER32_1_BASE, false);
 
     // Re-enable Interrupts and watchdog
     Interrupt_enableMaster();
@@ -238,6 +239,7 @@ void init(){
     pump_state =       false;
     resistor_state =   false;
     humidifier_state = false;
+    pump_timer_state = true;
     humidity_sensor_value =    0;
     temperature_sensor_value = 0;
     DHT22_Init();
@@ -270,6 +272,10 @@ void TA1_0_IRQHandler(void){
 // This timer handles the updating of the values of the sensor (temperature_sensor_value, humidity_sensor_value)
 // And the pump logic, both the long timers and the start/stop to prevent settings from messing up daily watering
 void T32_INT2_IRQHandler(void){
+    // FOR DEBUGGING
+    printf("[DEBUG] | Temp: %d | Hum: %d | State: %d| Pump timer: %d | Pump timer state: %d |\n", 
+        temperature_sensor_value, humidity_sensor_value, current_state, pump_timer, pump_timer_state);
+
     // Clear Timer32 interrupt flag
     Timer32_clearInterruptFlag(TIMER32_1_BASE);
 
@@ -434,5 +440,5 @@ void stopResistor(void){
 // Defaults to 1 in case of reading error
 bool checkLever(void){
     // TODO!
-    return false;
+    return true;
 }

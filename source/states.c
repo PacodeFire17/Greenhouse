@@ -185,6 +185,7 @@ void lever_status_set(void){
         current_state = STATE_AUTOMATIC;
         if (current_state != old_state){
             // If there is something to do when changing to auto can be done here
+            resumeHw();
         }
     } else {
         current_state = STATE_MANUAL;
