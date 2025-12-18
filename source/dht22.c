@@ -33,6 +33,22 @@ static void Delay_us(uint32_t us) {
     SysTick->CTRL = 0; // Disable SysTick
 }
 
+void setInput(void){
+    DHT22_PORT->DIR &= ~DHT22_PIN;
+}
+
+void setOutput(void){
+    DHT22_PORT->DIR |= DHT22_PIN;
+}
+
+void setLow(void){
+    DHT22_PORT->OUT &= ~DHT22_PIN
+}
+
+void setHigh(void){
+    DHT22_PORT->OUT |= DHT22_PIN;
+}
+
 static void Delay_ms(uint32_t ms) {
     for (uint32_t i = 0; i < ms; ++i)
     {
@@ -44,9 +60,9 @@ static void Delay_ms(uint32_t ms) {
 void DHT22_Init(void) {
 
     // Set pin as input
-    DHT22_PORT->DIR &= ~DHT22_PIN;
+    setInput();
     DHT22_PORT->REN |= DHT22_PIN; // Enable internal pull-up resistor 
-    DHT22_PORT->OUT |= DHT22_PIN;   
+    setHigh();   
 }
 
 bool DHT22_Read(DHT22_Data_t *data) {
@@ -56,15 +72,15 @@ bool DHT22_Read(DHT22_Data_t *data) {
     uint32_t pulse;
 
     // --- Start Signal ---
-    // Host pulls low for at least 18ms
-    DHT22_PORT->DIR |= DHT22_PIN;   // Output
-    DHT22_PORT->OUT &= ~DHT22_PIN;  // Low
-    Delay_ms(18);                // > 1ms (Datasheet: almeno 1ms, meglio 2ms per sicurezza)
+    // Host pulls low for at least 1ms
+    setOutput();
+    setLow();
+    Delay_ms(2);    // > 1ms (Datasheet: at least 1ms, better 2ms)
     
     // Host pulls high for 30us then release line
-    DHT22_PORT->OUT |= DHT22_PIN;   // High
+    setHigh();
     Delay_us(30);               // 20-40us
-    DHT22_PORT->DIR &= ~DHT22_PIN;  // Input (passa controllo al sensore)
+    setInput();  
 
     // --- Disable Interrupts --- 
     __disable_irq();
@@ -78,11 +94,6 @@ bool DHT22_Read(DHT22_Data_t *data) {
     // Wait high (80us)
     timeout = 1000;
     while (!(DHT22_PORT->IN & DHT22_PIN) && --timeout);
-    if (timeout == 0) { __enable_irq(); return false; }
-
-    // Wait low again (80us)
-    timeout = 1000; 
-    while ((DHT22_PORT->IN & DHT22_PIN) && --timeout);
     if (timeout == 0) { __enable_irq(); return false; }
 
     // --- Read Data 40 BIT ---
@@ -106,13 +117,14 @@ bool DHT22_Read(DHT22_Data_t *data) {
         // safely distinguishes the long pulse from the short one.
         idx = i / 8;
         bits[idx] <<= 1;
-        if (pulseLen > 30) { 
+        if (pulse > 30) { 
             bits[idx] |= 1;
         }
     }
 
     // --- Enable Interrupts --- (critical section end)
     __enable_irq();
+    Delay_ms(5);
 
     // --- Checksum ---
     // Sum of the first 4 bytes must be equal to the 5th byte
