@@ -361,7 +361,7 @@ void readSensors(void){
     DHT22_Data_t data;
     //If value returned by DHT22_Read = false -> dht22_error_flag = true
     dht22_error_flag = !DHT22_Read(&data);
-    if (dht22_error_flag){
+    if (!dht22_error_flag){
         temperature_sensor_value = data.temperature;
         humidity_sensor_value = data.humidity;
     }
