@@ -360,19 +360,10 @@ void PORT1_IRQHandler(void){
 void readSensors(void){
     DHT22_Data_t data;
     //attempt to read
-    if (DHT22_Read(&data)){
-       //check for corrupt data
-        if (data.temperature > -40 && data.temperature < 80 &&
-            data.humidity >= 0 && data.humidity <= 100) {
-            temperature_sensor_value = data.temperature;
-            humidity_sensor_value = data.humidity;
-            dht22_error_flag = false;  //valid reading --> update global variables
-        } else {
-            dht22_error_flag = true;
-        }
-    }
-    else {
-        dht22_error_flag = true;
+    dht22_error_flag = DHT22_Read(&data);
+    if (dht22_error_flag){
+        temperature_sensor_value = data.temperature;
+        humidity_sensor_value = data.humidity;
     }
 }
 

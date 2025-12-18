@@ -9,19 +9,16 @@
 #define DHT22_PORT P2
 #define DHT22_PIN BIT5
 
-// ==== FIXED POINT ARITHMETIC ==== 
-// Format: value * 10 (e.g. , 25.5 C -> 255)
-#define TO_FIXED(x)   ((int16_t)((x) * 10))
-#define FROM_FIXED(x) ((float)(x) / 10.0f)
-
-//stuct for DHT22
+//DHT22 Data structure
 typedef struct {    
-    int16_t humidity;       // fixed-point format (*10)
-    int16_t temperature;    // fixed-point format (*10)
+    int8_t humidity;       // fixed-point format
+    int8_t temperature;    // fixed-point format
 } DHT22_Data_t;
 
 // --- Public Function --- 
+void Delay_ms(uint32_t ms);
 void DHT22_Init(void);
 bool DHT22_Read(DHT22_Data_t *data);
+
 
 #endif

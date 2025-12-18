@@ -49,8 +49,13 @@ void setHigh(void){
     DHT22_PORT->OUT |= DHT22_PIN;
 }
 
-static void Delay_ms(uint32_t ms) {
-    for (uint32_t i = 0; i < ms; ++i)
+
+void Delay_ms(uint32_t ms) {
+
+    // dichiarando la variabile fuori dal loop mi risolve un errore di compilazione, probabilmente prche' il mio CCS usa C89/C90
+    // da controllare se sul vostro compare lo stesso errore rimettendo la dichiarazione all'interno e poi eliminare questo commento
+    uint32_t i = 0;
+    for (i = 0; i < ms; ++i)
     {
         Delay_us(1000);
     }
@@ -97,7 +102,10 @@ bool DHT22_Read(DHT22_Data_t *data) {
     if (timeout == 0) { __enable_irq(); return false; }
 
     // --- Read Data 40 BIT ---
-    for (int i = 0; i < 40; ++i)
+
+    //guardare commento in Delay_ms
+    int i = 0;
+    for (i = 0; i < 40; ++i)
     {
         // Wait for start of bit
         timeout = 1000;
@@ -141,7 +149,16 @@ bool DHT22_Read(DHT22_Data_t *data) {
     // Negative temperature
     if (tempRaw & 0x8000) {
         tempRaw &= 0x7FFF;
-        data->temperature = -tempRaw;
-    } else { data->temperature = tempRaw; }
+        tempRaw = -tempRaw;
+    }
+
+    // Divide by 10 to store data into an int8_t
+    data->temperature = tempRaw / 10;
+    data->humidity = (data->humidity) / 10;
+
+    //Check if data is within expected range (invalid otherwise)
+    if (data->temperature < 0 || data ->temperature > 100
+            || data->humidity < 0 || data->humidity > 100) return false;
+
     return true;
 }

@@ -18,8 +18,8 @@ State_t current_state = STATE_INIT;
 
 // Sample values for now
 int target_water_ml = 150;      
-int target_humidity_pct = 50;       // !! TENERE CONTO CHE I VALORI DAL DHT22 SONO = target_humidity_pct * 10
-int target_temp_c = 25;             // !! TENERE CONTO CHE I VALORI DAL DHT22 SONO = target_temp_c * 10
+int target_humidity_pct = 50;
+int target_temp_c = 25;
 
 Hardware current_hw = PUMP;
 
@@ -146,19 +146,19 @@ void automatic(){
         readSensors();
     
 
-        // control logic (FIXED POINT (*10))
+        // control logic
         // Added a larger boundary to prevent excessive fluctuation
         // TEMPERATURE
-        if (temperature_sensor_value > ((target_temp_c + TEMP_STEP) * 10)) {
+        if (temperature_sensor_value > (target_temp_c + TEMP_STEP)) {
             fan_state = true;
-        } else if (temperature_sensor_value < (target_temp_c * 10)){
+        } else if (temperature_sensor_value < target_temp_c){
             fan_state = false;
         }
 
         // HUMIDITY
-        if (humidity_sensor_value < (target_humidity_pct - HUM_STEP) * 10) {
+        if (humidity_sensor_value < (target_humidity_pct - HUM_STEP)) {
             humidifier_state = true;
-        } else if (humidity_sensor_value > (target_humidity_pct * 10)) {
+        } else if (humidity_sensor_value > target_humidity_pct) {
             humidifier_state = false;
         }
 
@@ -169,8 +169,7 @@ void automatic(){
     static int ui_refresh = 0;
     if (++ui_refresh >= 50) { // Aggiorna ogni 50 cicli (circa 0.5s)
         ui_refresh = 0;
-        // convert fixed point for easier reading
-        printSensorData(temperature_sensor_value / 10, humidity_sensor_value / 10);
+        printSensorData(temperature_sensor_value, humidity_sensor_value);
     }
 }
 
