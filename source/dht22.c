@@ -46,7 +46,7 @@ void DHT22_Init(void) {
     // Set pin as input
     DHT22_PORT->DIR &= ~DHT22_PIN;
     DHT22_PORT->REN |= DHT22_PIN; // Enable internal pull-up resistor 
-    DHT_22PORT->OUT |= DHT22_PIN;   
+    DHT22_PORT->OUT |= DHT22_PIN;   
 }
 
 bool DHT22_Read(DHT22_Data_t *data) {
