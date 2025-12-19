@@ -1,0 +1,4 @@
+=== NOTES HOW TO RUN TEST_MAIN.C LINUX UBUNTU === 
+
+run this comand in the root of the project: gcc -I include -DTEST_MODE source/test_main.c source/states.c -o test_suite
+after: ./test_suite

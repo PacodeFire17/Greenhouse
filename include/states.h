@@ -1,6 +1,21 @@
 #ifndef APP_STATES_H
 #define APP_STATES_H
 
+#ifdef TEST_MODE
+    #include <stdint.h>
+    #include <stdio.h>
+    #include <stdbool.h>
+    #include "hardware.h"
+#else
+    #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
+    #include "LcdDriver/Crystalfontz128x128_ST7735.h"
+    #include <ti/devices/msp432p4xx/inc/msp.h>
+    #include <ti/grlib/grlib.h>
+    #include <stdint.h>
+    #include <stdio.h>
+    #include "hardware.h"
+#endif
+
 // ------ 
 // Button press states as Flags
 #define EVT_NONE      0x00
@@ -21,6 +36,8 @@ typedef enum
     NUM_STATES
 }State_t;
 
+// ALREADY IN HARDWARE.H
+/*
 typedef enum{
     FAN,
     PUMP,
@@ -28,13 +45,14 @@ typedef enum{
     HUMIDIFIER,
     NUM_PIECES,
 }Hardware;
+*/
 
 // Definitions moved for accessibility
 #define WATER_MAX   510
 #define HUM_MAX     100
 #define TEMP_MAX    40
 #define TEMP_MIN    25
-#define WATER_STEP  30              // Do not change to a non multiple of 30 to prevent errors; see T32_INT2_IRQHandler in hardware.c
+#define WATER_STEP  10              // Do not change to a non multiple of 30 to prevent errors; see T32_INT2_IRQHandler in hardware.c, CAMBIATO DA 30 A 10 PERCHE IL TEST LOGICO NON FUNZIONAVA (TOLLO)
 #define HUM_STEP    5
 #define TEMP_STEP   1
 

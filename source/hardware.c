@@ -1,14 +1,21 @@
-#include <ti/devices/msp432p4xx/driverlib/driverlib.h>
-#include "LcdDriver/Crystalfontz128x128_ST7735.h"
-#include <ti/devices/msp432p4xx/inc/msp.h>
-#include <ti/grlib/grlib.h>
+#ifdef TEST_MODE
+    #include <stdint.h>
+    #include <stdio.h>
+    #include <stdbool.h>
+    #include "hardware.h"
+    #include "dht22.h"
+#else
+    #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
+    #include "LcdDriver/Crystalfontz128x128_ST7735.h"
+    #include <ti/devices/msp432p4xx/inc/msp.h>
+    #include <ti/grlib/grlib.h>
+    #include <stdint.h>
+    #include <stdio.h>
+    #include "hardware.h"   
+    #include "dht22.h"
+#endif
 
-#include <stdint.h>
-#include <stdio.h>
-#include "hardware.h"
-#include "states.h"
-#include "ui.h"
-#include "dht22.h"
+
 
 // ====== VARIABLES & CONSTANTS ======
 
@@ -200,11 +207,7 @@ void resumeHw(void){
     Interrupt_enableInterrupt(INT_TA1_0);
 }
 
-// Function to update hardware based on:
-// fan_state
-// pump_state
-// resistor_state
-// humidifier_state
+
 void updateHw(void){
     // Update hardware based on current state variables
     if (fan_state) 
@@ -231,6 +234,7 @@ void updateHw(void){
     WDT_A_clearTimer();
 }
 
+
 // Full harware initialization function
 void init(){
     // reset the states
@@ -242,7 +246,7 @@ void init(){
     pump_timer_state = true;
     humidity_sensor_value =    0;
     temperature_sensor_value = 0;
-    DHT22_Init();
+    //DHT22_Init();         // sensor init already in the hwInit() function
     graphicsInit();
     hwInit();
     updateHw();

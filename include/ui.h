@@ -1,14 +1,24 @@
 #ifndef UI_H
 #define UI_H
 
-#include <ti/grlib/grlib.h>
+#ifdef TEST_MODE
+    #include <stdint.h>
+    #include <stdio.h>
+    #include <stdbool.h>
+	#include "hardware.h"
+#else
+    #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
+    #include "LcdDriver/Crystalfontz128x128_ST7735.h"
+    #include <ti/devices/msp432p4xx/inc/msp.h>
+    #include <ti/grlib/grlib.h>
+    #include <stdint.h>
+    #include <stdio.h>
+    #include "hardware.h"
+#endif
 
-// Functions
-
-// initialization
+// Functions declaration
 void graphicsInit(void);
-// Print on the screen temperature and humidity
-void printSensorData(int temp, int hum);
+void printSensorData(int temp, int hum); 	// Print on the screen temperature and humidity
 // example
 void drawTitle(void);
 // Settings print
