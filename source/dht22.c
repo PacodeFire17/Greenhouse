@@ -49,7 +49,7 @@ void setOutput(void){
 }
 
 void setLow(void){
-    DHT22_PORT->OUT &= ~DHT22_PIN
+    DHT22_PORT->OUT &= ~DHT22_PIN;
 }
 
 void setHigh(void){

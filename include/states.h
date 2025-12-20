@@ -6,6 +6,8 @@
     #include <stdio.h>
     #include <stdbool.h>
     #include "hardware.h"
+
+    extern Hardware current_hw;
 #else
     #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
     #include "LcdDriver/Crystalfontz128x128_ST7735.h"
