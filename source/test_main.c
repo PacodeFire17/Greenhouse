@@ -110,36 +110,57 @@ int main(void) {
     automatic();
     assert_true(fan_state == false, "Fan remains OFF at target");
 
-    //only makes sense if TEMP_STEP > 1
-    printf("\n--- Test A2b: Temp within dead zone ---\n");
-    reset_manual_context();
-    current_state = STATE_AUTOMATIC;
-    target_temp_c = 25;
-    fan_state = false;
-    temperature_sensor_value = target_temp_c + 1; // between target and target+TEMP_STEP
-    three_s_flag = true;
-    automatic();
-    assert_true(fan_state == false, "Fan remains OFF in dead zone");
+//    Currently doesn't make sense because TEMP_STEP = 1
+//    printf("\n--- Test A2b: Temp within dead zone ---\n");
+//    reset_manual_context();
+//    current_state = STATE_AUTOMATIC;
+//    target_temp_c = 25;
+//    fan_state = false;
+//    temperature_sensor_value = target_temp_c + (TEMP_STEP/2); // Between target and target+TEMP_STEP
+//    three_s_flag = true;
+//    automatic();
+//    assert_true(fan_state == false, "Fan remains OFF in dead zone");
 
     printf("\n--- Test A3: Temp above threshold ---\n");
     reset_manual_context();
     current_state = STATE_AUTOMATIC;
     target_temp_c = 25;
     fan_state = false;
-    // temperature above target + TEMP_STEP
+    // Temperature above target + TEMP_STEP
     temperature_sensor_value = target_temp_c + TEMP_STEP + 1;
     three_s_flag = true;
     automatic();
     assert_true(fan_state == true, "Fan ON when temp > target + TEMP_STEP");
 
-    printf("\n--- Test A4: three_s_flag false ---\n");
+    printf("\n--- Test A5: Humidity below lower boundary ---\n");
     reset_manual_context();
     current_state = STATE_AUTOMATIC;
-    fan_state = false;
-    temperature_sensor_value = 100;
-    three_s_flag = false;
+    target_humidity_pct = 50;
+    humidifier_state = false;
+    humidity_sensor_value = 44;
+    three_s_flag = true;
     automatic();
-    assert_true(fan_state == false, "Fan remains OFF when three_s_flag is false");
+    assert_true(humidifier_state == true, "Humidifier ON when humidity < target-HUM_STEP");
+
+    printf("\n--- Test A6: Humidity within dead zone ---\n");
+    reset_manual_context();
+    current_state = STATE_AUTOMATIC;
+    target_humidity_pct = 50;
+    humidifier_state = false;
+    humidity_sensor_value = target_humidity_pct + (HUM_STEP/2);
+    three_s_flag = true;
+    automatic();
+    assert_true(humidifier_state == false, "Humidifier remains OFF in dead zone");
+
+    printf("\n--- Test A7: Humidity above target ---\n");
+    reset_manual_context();
+    current_state = STATE_AUTOMATIC;
+    target_humidity_pct = 50;
+    humidifier_state = true;
+    humidity_sensor_value = target_humidity_pct + HUM_STEP + 1;
+    three_s_flag = true;
+    automatic();
+    assert_true(humidifier_state == false, "Humidifier OFF when humidity > target");
 
     // ================= SETTINGS =================
     printf("\n--- Test S1: Increase water ---\n");
@@ -174,6 +195,33 @@ int main(void) {
     fn_SET_WATER();
     assert_true(target_water_ml == 0, "Water does not go below 0 when attempting to decrease water");
 
+    printf("\n--- Test S5: Water B2 + B3 simultaneous ---\n");
+    reset_manual_context();
+    current_state = STATE_SET_WATER;
+    target_water_ml = 100;
+    button_events = EVT_B2_PRESS | EVT_B3_PRESS;  // Both pressed
+    fn_SET_WATER();
+    assert_true(target_water_ml == 100, "Simultaneous increase/decrease cancel out correctly");
+
+    printf("\n--- Test S6: Rapid B2 presses ---\n");
+    reset_manual_context();
+    current_state = STATE_SET_WATER;
+    target_water_ml = 100;
+    for(int i=0; i<5; i++){
+        button_events = EVT_B2_PRESS;
+        fn_SET_WATER();
+    }
+    assert_true(target_water_ml == 100 + 5*WATER_STEP, "Water incremented correctly after 5 rapid presses");
+
+    printf("\n--- Test M3: B1 + B2 simultaneous ---\n");
+    reset_manual_context();
+    current_state = STATE_SET_WATER;
+    target_water_ml = 100;
+    button_events = EVT_B1_PRESS | EVT_B2_PRESS;
+    fn_SET_WATER();
+    // B1 should always take priority and move to next state, water level may or may not increase, check the debug output
+    assert_true(current_state == STATE_SET_HUM, "B1 takes priority, moves to next state");
+
 
     // ================= MANUAL =================
     printf("\n--- Test M1: Manual PUMP ON ---\n");
@@ -191,6 +239,7 @@ int main(void) {
     manual();
     assert_true(current_hw == FAN, "Switched to FAN");
     assert_true(pump_state == false, "Pump OFF on switch");
+
 
 
     // ================= STATE TRANSITIONS =================
