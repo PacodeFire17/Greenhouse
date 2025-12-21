@@ -7,7 +7,7 @@
     #include <stdbool.h>
     #include "hardware.h"
 
-    extern Hardware current_hw;
+//    extern Hardware current_hw;
 #else
     #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
     #include "LcdDriver/Crystalfontz128x128_ST7735.h"
@@ -72,6 +72,8 @@ extern int target_temp_c;
 extern int target_water_ml;      
 extern int target_humidity_pct;  
 extern int target_temp_c;  
+// !
+extern Hardware current_hw;
 
 // Functions
 void fn_SET_WATER(void);

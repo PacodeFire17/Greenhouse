@@ -4,6 +4,7 @@
     #include <stdbool.h>
     #include "hardware.h"
     #include "dht22.h"
+    #include "states.h"
 #else
     #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
     #include "LcdDriver/Crystalfontz128x128_ST7735.h"
@@ -13,6 +14,7 @@
     #include <stdio.h>
     #include "hardware.h"   
     #include "dht22.h"
+    #include "states.h"
 #endif
 
 
