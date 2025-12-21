@@ -41,7 +41,8 @@ const uint_fast16_t PUMP_PIN =                  GPIO_PIN1;
 const uint_fast16_t LEVER_PIN =                 GPIO_PIN1;
 const uint_fast16_t SWITCH_PIN =                GPIO_PIN2;
 const uint_fast16_t RESISTOR_PIN =              GPIO_PIN2;
-const uint_fast16_t HUMIDIFIER_PIN =            GPIO_PIN3;
+const uint_fast16_t HUMIDIFIER_POWER_PIN =      GPIO_PIN3;
+const uint_fast16_t HUMIDIFIER_SIGNAL_PIN =     GPIO_PIN1;
 
 // Status flags
 bool fan_state =        false;
@@ -77,8 +78,8 @@ volatile bool three_s_flag = false;
 // contatore per il blocco dei rimbalzi (time lockout)
 volatile uint8_t debounce_countdown = 0; 
 
-// Duration of a pulse to toggle humidifier status (ms)
-const uint_fast8_t hum_pulse_duration_ms = 10;
+// Duration of a pulse to toggle humidifier status (ms) - minimum tested is 50, +1 just to be sure
+const uint_fast8_t hum_pulse_duration_ms = 51;
 
 // Dual purpose pump counter (coutns between watering cycles and for watering duration), wait before starting to prevent underflow during initialization
 volatile uint16_t pump_timer = 10;
@@ -120,8 +121,10 @@ void hwInit(void) {
     GPIO_setOutputLowOnPin(RESISTOR_PORT, RESISTOR_PIN);
 
     // Humidifier
-    GPIO_setAsOutputPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
-    GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
+    GPIO_setAsOutputPin(HUMIDIFIER_PORT, HUMIDIFIER_POWER_PIN);
+    GPIO_setAsOutputPin(HUMIDIFIER_PORT, HUMIDIFIER_SIGNAL_PIN);
+    GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_POWER_PIN);
+    GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_SIGNAL_PIN);
 
     // GPIO (INPUTS & INTERRUPTS)
     // B1 = S1 = P5.1
@@ -379,25 +382,25 @@ void readSensors(void){
 
 // Starts the humidifier circuit with a pulse
 void startHum(void){
-    // TODO!
-    // Test is required here: a brief pulse should be enough to start the board
     // The module has two settings: continuous (first click) and alternate 10s on/5s off
     // https://ae01.alicdn.com/kf/S64754aa461d14f20ac57202706dfa4397.jpg
     // https://ae01.alicdn.com/kf/Scc9a0b2f94fb432ebde817d22de69baei.jpg
-    GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
+    WDT_A_holdTimer();
+    Interrupt_disableMaster();
+    
+    GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_POWER_PIN);
+    Delay_ms(1);
+    GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_SIGNAL_PIN);
     Delay_ms(hum_pulse_duration_ms);
-    GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
+    GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_SIGNAL_PIN);
+    Interrupt_enableMaster();
+    WDT_A_startTimer();
 }
 
-// Stops the humidifier with two pulses
+// Stops the humidifier by cutting power
 void stopHum(void){
-    GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
-    Delay_ms(hum_pulse_duration_ms);
-    GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
-    Delay_ms(hum_pulse_duration_ms);
-    GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
-    Delay_ms(hum_pulse_duration_ms);
-    GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_PIN);
+    GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_POWER_PIN);
+    GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_SIGNAL_PIN);
 }
 
 // Activates the water pump
