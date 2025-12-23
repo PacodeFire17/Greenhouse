@@ -64,7 +64,7 @@ typedef struct{
 } StateMachine_t;
 
 // Extern variables
-extern State_t current_state;
+extern volatile State_t current_state;
 extern volatile uint8_t button_events; //ISR variable
 extern int target_water_ml;
 extern int target_humidity_pct;

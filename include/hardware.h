@@ -51,10 +51,12 @@ extern bool fan_state;
 extern bool pump_state;
 extern bool resistor_state;
 extern bool humidifier_state;
-extern int16_t humidity_sensor_value;
-extern int16_t temperature_sensor_value;
+extern bool pump_timer_state;
+extern volatile int16_t humidity_sensor_value;
+extern volatile int16_t temperature_sensor_value;
 extern volatile bool timer_flag;
 extern volatile bool three_s_flag;
+extern volatile uint16_t pump_timer;
 extern volatile uint8_t button_events;
 
 // Define event 

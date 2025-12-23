@@ -22,7 +22,7 @@
 
 // ====== VARIABLES & CONSTANTS ======
 
-State_t current_state = STATE_INIT;
+volatile State_t current_state = STATE_INIT;
 
 // Sample values for now
 int target_water_ml = 150;      
@@ -152,6 +152,7 @@ void automatic(){
     if (three_s_flag) {
         three_s_flag = false;
         readSensors();
+        printSensorData(temperature_sensor_value, humidity_sensor_value);
     
 
         // control logic
@@ -173,16 +174,14 @@ void automatic(){
         updateHw();
     }
 
+    // TODO! Do we need this?
+    // We can create a function that updates the prints based on the context and run it only when something changes
     // refresh of LCD
-    static int ui_refresh = 0;
-    if (++ui_refresh >= 50) { // Aggiorna ogni 50 cicli (circa 0.5s)
-        ui_refresh = 0;
-        printSensorData(temperature_sensor_value, humidity_sensor_value);
-    }
-}
-
-void settings(){
-    // TODO!
+    // static int ui_refresh = 0;
+    // if (++ui_refresh >= 50) { // Aggiorna ogni 50 cicli (circa 0.5s)
+    //     ui_refresh = 0;
+    //     printSensorData(temperature_sensor_value, humidity_sensor_value);
+    // }
 }
 
 // Sets current state depending on the value read by the status lever
@@ -191,14 +190,21 @@ void lever_status_set(void){
     if (checkLever()){
         current_state = STATE_AUTOMATIC;
         if (current_state != old_state){
-            // If there is something to do when changing to auto can be done here
+            // Things to be run when entering automatic state, can be made into a function to call it at startup
+            printf("DEBUG: lever changed state to automatic\n");
+            // TODO: This can cause inconsistent values to be printed, since it will print outdated values. 
+            // It can most likely be ignored with no consequences since temperature and humidity do not change much, but 
+            // we must aknowledge this. 
+            printSensorData(temperature_sensor_value, humidity_sensor_value);
             resumeHw();
         }
     } else {
         current_state = STATE_MANUAL;
         if (current_state != old_state){
-            // When state changes from auto to manual, pause hardware
+            // When state changes from auto to manual, pause hardware and print
+            printf("DEBUG: lever changed state to manual\n");
             pauseHw();
+            printCurrentHardware(current_hw);
         }
     }
 }
@@ -207,14 +213,17 @@ void fn_next_state(void) {
     switch (current_state) {
         case STATE_SET_WATER:
             current_state = STATE_SET_HUM;
+            printHumSettings(target_humidity_pct);
             break;
 
         case STATE_SET_HUM:
             current_state = STATE_SET_TEMP;
+            printCurrentHardware(current_hw);
             break;
 
         default: // handle both set_temp and all others in case of error
             lever_status_set();
+            printf("DEBUG: resuming hw changing states\n");
             resumeHw();
             break;
     }
@@ -275,7 +284,7 @@ void fn_SET_HUMIDITY(void){
 //    Leggi l�input dei bottoni: aumenta la quantit� di acqua (B1) o diminuisci (B2), non cambiare se se il livello e a 0 o al massimo passa a IMPOSTAZIONI-TEMPERATURA se B3
 //    Stampa periodicamente il livello attuale; stampa a schermo �OFF� o �MAX� se il livello e a 0 o al massimo, usa funzione dedicata
 
-    bool is_updated = false;
+    bool is_updated = false;    
     pauseHw();
     if (button_events & EVT_B2_PRESS) {
         is_updated = true;

@@ -27,7 +27,7 @@ const uint_fast8_t B2_PORT =                    GPIO_PORT_P3;   // S2 button
 const uint_fast8_t B3_PORT =                    GPIO_PORT_P1;   // S3 button (joystick)
 const uint_fast8_t FAN_PORT =                   GPIO_PORT_P1;
 const uint_fast8_t PUMP_PORT =                  GPIO_PORT_P2;
-const uint_fast8_t LEVER_PORT =                 GPIO_PORT_P3;
+const uint_fast8_t LEVER_PORT =                 GPIO_PORT_P6;
 const uint_fast8_t SWITCH_PORT =                GPIO_PORT_P2;
 const uint_fast8_t RESISTOR_PORT =              GPIO_PORT_P3;
 const uint_fast8_t HUMIDIFIER_PORT =            GPIO_PORT_P4;
@@ -38,7 +38,7 @@ const uint_fast16_t B2_PIN =                    GPIO_PIN5;  // S2 button, before
 const uint_fast16_t B3_PIN =                    GPIO_PIN5;  // S3 button (joystick), before 1.5, now changed to 4.1
 const uint_fast16_t FAN_PIN =                   GPIO_PIN0;
 const uint_fast16_t PUMP_PIN =                  GPIO_PIN1;
-const uint_fast16_t LEVER_PIN =                 GPIO_PIN1;
+const uint_fast16_t LEVER_PIN =                 GPIO_PIN4;
 const uint_fast16_t SWITCH_PIN =                GPIO_PIN2;
 const uint_fast16_t RESISTOR_PIN =              GPIO_PIN2;
 const uint_fast16_t HUMIDIFIER_POWER_PIN =      GPIO_PIN3;
@@ -51,8 +51,8 @@ bool resistor_state =   false;
 bool humidifier_state = false;
 bool pump_is_watering = false;
 bool pump_timer_state = true;
-int16_t humidity_sensor_value =    0;
-int16_t temperature_sensor_value = 0;
+volatile int16_t humidity_sensor_value =    25;
+volatile int16_t temperature_sensor_value = 25;
 
 // TODO!
 // Check before release that the pins and ports defined match the hardware
@@ -145,6 +145,9 @@ void hwInit(void) {
     GPIO_clearInterruptFlag(B3_PORT, B3_PIN);
     GPIO_enableInterrupt(B3_PORT, B3_PIN);  
 
+    // Lever
+    GPIO_setAsInputPinWithPullUpResistor(LEVER_PORT, LEVER_PIN);
+
     // Enable global interrupt  
     Interrupt_enableInterrupt(INT_PORT1);
 
@@ -195,6 +198,7 @@ void pauseHw(void){
     stopResistor();
     stopPump();
     // Block pump timer
+    printf("Stopping in puaseHW\n");
     pump_timer_state = false;
     // Should be last since it takes 2*hum_pulse_duration_ms
     stopHum(); 
@@ -241,6 +245,7 @@ void updateHw(void){
 
 
 // Full harware initialization function
+// TODO: this function is never used and is partly a duplicate of sys_init_logic. Check what to do with this. 
 void init(){
     // reset the states
     // To be implemented later on: read from memory instead of resetting
@@ -251,7 +256,6 @@ void init(){
     pump_timer_state = true;
     humidity_sensor_value =    0;
     temperature_sensor_value = 0;
-    //DHT22_Init();         // sensor init already in the hwInit() function
     graphicsInit();
     hwInit();
     updateHw();
@@ -281,16 +285,16 @@ void TA1_0_IRQHandler(void){
 // This timer handles the updating of the values of the sensor (temperature_sensor_value, humidity_sensor_value)
 // And the pump logic, both the long timers and the start/stop to prevent settings from messing up daily watering
 void T32_INT2_IRQHandler(void){
-    // FOR DEBUGGING
-    printf("[DEBUG] | Temp: %d | Hum: %d | State: %d| Pump timer: %d | Pump timer state: %d |\n", 
-        temperature_sensor_value, humidity_sensor_value, current_state, pump_timer, pump_timer_state);
-
     // Clear Timer32 interrupt flag
     Timer32_clearInterruptFlag(TIMER32_1_BASE);
 
     // Set flag to true; 
     // The real call of the sensor read is outside the interrupt, in automatic mode
     three_s_flag = true;
+
+    // FOR DEBUGGING
+    printf("[DEBUG] | Temp: %d | Hum: %d | State: %d | Lever: %d | Watering: %d | Pump timer: %5d | Pump timer state: %d |\n", 
+    temperature_sensor_value, humidity_sensor_value, current_state, checkLever(), pump_state ,pump_timer, pump_timer_state);
     
     // target_water_ml -> ml/day
     // 3s/cycle
@@ -374,6 +378,7 @@ void readSensors(void){
         temperature_sensor_value = data.temperature;
         humidity_sensor_value = data.humidity;
     }
+    printf("[HARDWARE] Reading sensor data: %3d, %3d. Error: %d\n", data.temperature, data.humidity, dht22_error_flag);
 }
 
 // ---- Hardware start/stop functions ----
@@ -439,6 +444,9 @@ void stopResistor(void){
 // Returns 1 if it is in auto, 0 if in manual.
 // Defaults to 1 in case of reading error
 bool checkLever(void){
-    // TODO!
-    return true;
+    uint8_t lever_state = GPIO_getInputPinValue(LEVER_PORT, LEVER_PIN);
+    // HIGH = auto (true), LOW = manual (false)
+    // This defaults to AUTO if there is no lever   
+    // When the lever closes/switches, it shorts the pin to GND and pin reads LOW.
+    return (lever_state == 0); 
 }

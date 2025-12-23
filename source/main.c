@@ -29,10 +29,10 @@ Settings_t settings_store;
 StateMachine_t fsm[] = {
     {STATE_INIT, fn_INIT},
     {STATE_MANUAL, fn_MANUAL},
+    {STATE_AUTOMATIC, fn_AUTOMATIC},
     {STATE_SET_WATER, fn_SET_WATER},
     {STATE_SET_HUM, fn_SET_HUMIDITY},
-    {STATE_SET_TEMP, fn_SET_TEMP},
-    {STATE_AUTOMATIC, fn_AUTOMATIC}
+    {STATE_SET_TEMP, fn_SET_TEMP}
 };
 
 // --- MODIFIED INIT FUNCTION ---
@@ -77,7 +77,7 @@ int main(void)
     // Set initial state
     current_state = STATE_AUTOMATIC;
 
-    printf("SYSTEM: Main Loop Started.\n");
+    printf("[MAIN] Main Loop Started.\n");
 
     while (1)
     {
