@@ -15,8 +15,8 @@
     bool pump_state = false;
     bool resistor_state = false;
     bool humidifier_state = false;
-    int16_t humidity_sensor_value = 0;
-    int16_t temperature_sensor_value = 0;
+    volatile int16_t humidity_sensor_value = 0;
+    volatile int16_t temperature_sensor_value = 0;
     volatile uint8_t button_events = EVT_NONE;
     volatile bool three_s_flag = false;
 

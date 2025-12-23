@@ -6,7 +6,7 @@
     #include "ui.h"
     #include "states.h"
 
-    extern State_t current_state;
+    extern volatile State_t current_state;
     extern Hardware current_hw;
 #else
     #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
