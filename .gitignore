@@ -1,3 +1,5 @@
 Debug
 .vscode
 .launches
+tests/test_suite
+tests/test_suite.exe
