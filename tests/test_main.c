@@ -164,6 +164,23 @@
         automatic();
         assert_true(humidifier_state == false, "Humidifier OFF when humidity > target");
 
+        printf("\n--- Test A8: Invalid sensor values ---\n");
+        reset_manual_context();
+        current_state = STATE_AUTOMATIC;
+        temperature_sensor_value = -999;
+        humidity_sensor_value = 999;
+        three_s_flag = true;
+        automatic();
+        assert_true(fan_state == false && humidifier_state == false, "Invalid sensor values do not trigger fan or humidifier");
+
+        printf("\n--- Test A9: Fan and Resistor mutual exclusion ---\n");
+        reset_manual_context();
+        current_state = STATE_AUTOMATIC;
+        temperature_sensor_value = target_temp_c + TEMP_STEP + 2;
+        three_s_flag = true;
+        automatic();
+        assert_true(!(fan_state && resistor_state), "Fan and resistor are never ON at the same time");
+
         // ================= SETTINGS =================
         printf("\n--- Test S1: Increase water ---\n");
         reset_manual_context();
@@ -216,7 +233,7 @@
         }
         assert_true(target_water_ml == 100 + 5*WATER_STEP, "Water incremented correctly after 5 rapid presses");
 
-        printf("\n--- Test M3: B1 + B2 simultaneous ---\n");
+        printf("\n--- Test S7: B1 + B2 simultaneous ---\n");
         reset_manual_context();
         current_state = STATE_SET_WATER;
         target_water_ml = 100;
@@ -242,7 +259,6 @@
         manual();
         assert_true(current_hw == FAN, "Switched to FAN");
         assert_true(pump_state == false, "Pump OFF on switch");
-
 
 
         // ================= STATE TRANSITIONS =================
