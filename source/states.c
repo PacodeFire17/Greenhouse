@@ -53,94 +53,116 @@ void fn_AUTOMATIC(void){
 }
 
 
-// #define EVT_B1_PRESS  0x01  // 0001 // Settings
-// #define EVT_B2_PRESS  0x02  // 0010 // Up (board)
-// #define EVT_B3_PRESS  0x04  // 0100 // Down (board)
+// #define EVT_B1_PRESS  0x01  // 0001 // Updated: Up (board)
+// #define EVT_B2_PRESS  0x02  // 0010 // Down
+// #define EVT_B3_PRESS  0x04  // 0100 // Settings (joystick)
 
 void manual(){
+    bool is_changed = false;
+    if (timer_flag){
+        timer_flag = false;
+        lever_status_set();
+    }
     switch (current_hw) {
         case PUMP:
             // Case Up: turn on pump
-            if (button_events & EVT_B2_PRESS){ 
+            if (button_events & EVT_B1_PRESS){ 
+                printf("[STATES] Manual - Turning on pump, events: %3d\n", button_events);
                 pump_state = 1;
-                button_events &= ~EVT_B2_PRESS;
+                button_events &= ~EVT_B1_PRESS;
+                is_changed = true;
             }
             // Case Down: turn off pump
             // By default this turns off the device if both buttons are pressed
-            if (button_events & EVT_B3_PRESS){ 
+            if (button_events & EVT_B2_PRESS){ 
+                
+                printf("[STATES] Manual - Turning off pump, events: %3d\n", button_events);
                 pump_state = 0;
-                button_events &= ~EVT_B3_PRESS;
+                button_events &= ~EVT_B2_PRESS;
+                is_changed = true;
             }
             // Case Settings: switch to next hardware and turn off 
             // Change setting last to prevent other hardware from firing accidentally
-            if (button_events & EVT_B1_PRESS) {
+            if (button_events & EVT_B3_PRESS) {
+                printf("[STATES] Manual - b1 pressed, passing from pump to fan. events: %3d\n", button_events);
                 pump_state = false;
                 current_hw = FAN;
                 // Reset button states to prevent any potential bug
                 button_events &= 0;
+                is_changed = true;
             }
             break;
         case FAN:
             // Analogous to pump
             // Case Up: turn on fan
-            if (button_events & EVT_B2_PRESS){ 
+            if (button_events & EVT_B1_PRESS){ 
                 fan_state = 1;
-                button_events &= ~EVT_B2_PRESS;
+                button_events &= ~EVT_B1_PRESS;
+                is_changed = true;
             }
             // Case Down: turn off fan
-            if (button_events & EVT_B3_PRESS){ 
+            if (button_events & EVT_B2_PRESS){ 
                 fan_state = 0;
-                button_events &= ~EVT_B3_PRESS;
+                button_events &= ~EVT_B2_PRESS;
+                is_changed = true;
             }
             // Case Settings: switch to next hardware and turn off 
-            if (button_events & EVT_B1_PRESS) {
+            if (button_events & EVT_B3_PRESS) {
                 fan_state = false;
                 current_hw = HUMIDIFIER;
                 button_events &= 0;
+                is_changed = true;
             }
             break;
         case HUMIDIFIER:
             // Case Up: turn on humidifier
-            if (button_events & EVT_B2_PRESS){ 
+            if (button_events & EVT_B1_PRESS){ 
                 humidifier_state = 1;
-                button_events &= ~EVT_B2_PRESS;
+                button_events &= ~EVT_B1_PRESS;
+                is_changed = true;
             }
             // Case Down: turn off humidifier
-            if (button_events & EVT_B3_PRESS){ 
+            if (button_events & EVT_B2_PRESS){ 
                 humidifier_state = 0;
-                button_events &= ~EVT_B3_PRESS;
+                button_events &= ~EVT_B2_PRESS;
+                is_changed = true;
             }
             // Case Settings: switch to next hardware and turn off 
-            if (button_events & EVT_B1_PRESS) {
+            if (button_events & EVT_B3_PRESS) {
                 humidifier_state = false;
                 current_hw = RESISTOR;
                 button_events &= 0;
+                is_changed = true;
             }
             break;
         case RESISTOR:
             // Case Up: turn on resistor
-            if (button_events & EVT_B2_PRESS){ 
+            if (button_events & EVT_B1_PRESS){ 
                 resistor_state = 1;
-                button_events &= ~EVT_B2_PRESS;
+                button_events &= ~EVT_B1_PRESS;
+                is_changed = true;
             }
             // Case Down: turn off fan
-            if (button_events & EVT_B3_PRESS){ 
+            if (button_events & EVT_B2_PRESS){ 
                 resistor_state = 0;
-                button_events &= ~EVT_B3_PRESS;
+                button_events &= ~EVT_B2_PRESS;
+                is_changed = true;
             }
             // Case Settings: switch to next hardware and turn off 
-            if (button_events & EVT_B1_PRESS) {
+            if (button_events & EVT_B3_PRESS) {
                 resistor_state = false;
                 // Cycle back to pump
                 current_hw = PUMP;
                 button_events &= 0;
+                is_changed = true;
             }
             break;
         default:
             break;
     }
     // Display the current hardware and turn on/off hw
-    printCurrentHardware(current_hw);
+    if (is_changed)
+        printCurrentHardware(current_hw);
     updateHw();
 }
 
@@ -171,6 +193,12 @@ void automatic(){
             humidifier_state = false;
         }
 
+    }
+    // Check if settings button has been pressed
+    if (button_events & EVT_B3_PRESS) {
+            button_events &= 0;
+            current_state = STATE_SET_WATER;
+    } else {
         updateHw();
     }
 
@@ -186,15 +214,24 @@ void automatic(){
 
 // Sets current state depending on the value read by the status lever
 void lever_status_set(void){
+    // NUM_STATES is used as a wildcard to let the function know the state must be set from scratch
+    if (current_state != STATE_AUTOMATIC && current_state != STATE_MANUAL && current_state != NUM_STATES){
+        printf("[STATES] Lever attempted to change state, but not in a changeable state\n");
+        return;
+    } 
     int old_state = current_state;
     if (checkLever()){
         current_state = STATE_AUTOMATIC;
         if (current_state != old_state){
             // Things to be run when entering automatic state, can be made into a function to call it at startup
-            printf("DEBUG: lever changed state to automatic\n");
+            printf("[STATES] Lever changed state to automatic\n");
             // TODO: This can cause inconsistent values to be printed, since it will print outdated values. 
             // It can most likely be ignored with no consequences since temperature and humidity do not change much, but 
             // we must aknowledge this. 
+            fan_state = 0;
+            pump_state = 0;
+            resistor_state = 0;
+            humidifier_state = 0;
             printSensorData(temperature_sensor_value, humidity_sensor_value);
             resumeHw();
         }
@@ -202,7 +239,9 @@ void lever_status_set(void){
         current_state = STATE_MANUAL;
         if (current_state != old_state){
             // When state changes from auto to manual, pause hardware and print
-            printf("DEBUG: lever changed state to manual\n");
+            printf("[STATES] Lever changed state to manual\n");
+            // Reset to default
+            current_hw = PUMP;
             pauseHw();
             printCurrentHardware(current_hw);
         }
@@ -218,41 +257,37 @@ void fn_next_state(void) {
 
         case STATE_SET_HUM:
             current_state = STATE_SET_TEMP;
-            printCurrentHardware(current_hw);
+            printTempSettings(current_hw);
             break;
 
         default: // handle both set_temp and all others in case of error
+            // Using NUM_States allows lever_status_set acts as an "always changed state" button for lever_status_set.
+            current_state = NUM_STATES;
             lever_status_set();
-            printf("DEBUG: resuming hw changing states\n");
-            resumeHw();
             break;
     }
 }
 
-// Dummy implementation of settings
+// #define EVT_B1_PRESS  0x01  // 0001 // Updated: Up (board)
+// #define EVT_B2_PRESS  0x02  // 0010 // Down
+// #define EVT_B3_PRESS  0x04  // 0100 // Settings (joystick)
 
+// Functions for changing target settings
 void fn_SET_WATER(void){
-    // TODO!
-//    Mettere in pausa il timer dell�irrigazione
-//    Interrompere resistenza e ventola finch� non finiscono le impostazioni
-//    Mostrare a schermo la quantit� di acqua impostata attualmente (misura da definire, per ora int)
-//    Leggi l�input dei bottoni: aumenta la quantit� di acqua (B1) o diminuisci (B2), non cambiare se se il livello e a 0 o al massimo passa a IMPOSTAZIONI-UMIDIT� se B3
-//    Stampa periodicamente il livello attuale; stampa a schermo �OFF� o �MAX� se il livello e a 0 o al massimo, usa funzione dedicata (tipo printWaterSetting)
-
     bool is_updated = false;
     pauseHw();
     // up
-    if (button_events & EVT_B2_PRESS) {
+    if (button_events & EVT_B1_PRESS) {
         is_updated = true;
         target_water_ml += WATER_STEP;
         if (target_water_ml > WATER_MAX)
             target_water_ml = WATER_MAX;
 
         // Clear the B1 flag
-        button_events &= ~EVT_B2_PRESS;
+        button_events &= ~EVT_B1_PRESS;
     }
     // down
-    if (button_events & EVT_B3_PRESS) {
+    if (button_events & EVT_B2_PRESS) {
         is_updated = true;
         // catch overflow
         if (target_water_ml <= WATER_STEP)
@@ -261,16 +296,16 @@ void fn_SET_WATER(void){
             target_water_ml -= WATER_STEP;
 
         // Clear the B2 flag
-        button_events &= ~EVT_B3_PRESS;
+        button_events &= ~EVT_B2_PRESS;
     }
     // Settings
-    if (button_events & EVT_B1_PRESS) {
+    if (button_events & EVT_B3_PRESS) {
         is_updated = true;
         // Move to next state
         fn_next_state();
 
-        // Clear the B2 flag
-        button_events &= ~EVT_B1_PRESS;
+        // Clear all flags when changing
+        button_events &= 0;
     }
     // update screen only if there is an update
     if (is_updated){
@@ -279,23 +314,18 @@ void fn_SET_WATER(void){
 }
 
 void fn_SET_HUMIDITY(void){
-    // TODO!
-//    Mostrare a schermo il livello di umidit� target attuale(int)
-//    Leggi l�input dei bottoni: aumenta la quantit� di acqua (B1) o diminuisci (B2), non cambiare se se il livello e a 0 o al massimo passa a IMPOSTAZIONI-TEMPERATURA se B3
-//    Stampa periodicamente il livello attuale; stampa a schermo �OFF� o �MAX� se il livello e a 0 o al massimo, usa funzione dedicata
-
     bool is_updated = false;    
     pauseHw();
-    if (button_events & EVT_B2_PRESS) {
+    if (button_events & EVT_B1_PRESS) {
         is_updated = true;
         target_humidity_pct += HUM_STEP;
         if (target_humidity_pct > HUM_MAX)
             target_humidity_pct = HUM_MAX;
 
-        // Clear the B2 flag
-        button_events &= ~EVT_B2_PRESS;
+        // Clear the B1 flag
+        button_events &= ~EVT_B1_PRESS;
     }
-    if (button_events & EVT_B3_PRESS) {
+    if (button_events & EVT_B2_PRESS) {
         is_updated = true;
         // catch overflow
         if (target_humidity_pct <= HUM_STEP)
@@ -303,16 +333,16 @@ void fn_SET_HUMIDITY(void){
         else
             target_humidity_pct -= HUM_STEP;
 
-        // Clear the B3 flag
-        button_events &= ~EVT_B3_PRESS;
+        // Clear the B2 flag
+        button_events &= ~EVT_B2_PRESS;
     }
-    if (button_events & EVT_B1_PRESS) {
+    if (button_events & EVT_B3_PRESS) {
         is_updated = true;
         // Move to next state
         fn_next_state();
 
-        // Clear the B1 flag
-        button_events &= ~EVT_B1_PRESS;
+        // Clear the B3 flag
+        button_events &= ~EVT_B3_PRESS;
     }
     // update screen only if there is an update
     if (is_updated){
@@ -321,43 +351,36 @@ void fn_SET_HUMIDITY(void){
 }
 
 void fn_SET_TEMP(void){
-    // TODO!
-//    Mostrare a schermo il livello di umidit� target attuale(int)
-//    Leggi l�input dei bottoni: aumenta la quantit� di acqua (B1) o diminuisci (B2), non cambiare se se il livello e a 0 o al massimo passa a AUTO se B3
-//    Stampa periodicamente il livello attuale; stampa a schermo �OFF� o �MAX� se il livello e a 0 o al massimo, usa funzione dedicata
-
-
     bool is_updated = false;
     pauseHw();
-    if (button_events & EVT_B2_PRESS) {
+    if (button_events & EVT_B1_PRESS) {
         is_updated = true;
         target_temp_c += TEMP_STEP;
         if (target_temp_c > TEMP_MAX)
             target_temp_c = TEMP_MAX;
+
+        // Clear the B1 flag
+        button_events &= ~EVT_B1_PRESS;
+    }
+    if (button_events & EVT_B2_PRESS) {
+        is_updated = true;
+        target_temp_c -= TEMP_STEP;
+        if (target_temp_c < TEMP_MIN)
+            target_temp_c = TEMP_MIN;
 
         // Clear the B2 flag
         button_events &= ~EVT_B2_PRESS;
     }
     if (button_events & EVT_B3_PRESS) {
         is_updated = true;
-        target_temp_c -= TEMP_STEP;
-        if (target_temp_c < TEMP_MIN)
-            target_temp_c = TEMP_MIN;
-
-        // Clear the B3 flag
-        button_events &= ~EVT_B3_PRESS;
-    }
-    if (button_events & EVT_B1_PRESS) {
-        is_updated = true;
         // Move to next state
         fn_next_state();
 
-        // Clear the B1 flag
-        button_events &= ~EVT_B1_PRESS;
+        // Clear the B3 flag
+        button_events &= ~EVT_B3_PRESS;
     }
     // update screen only if there is an update
     if (is_updated){
         printTempSettings(target_temp_c);
     }
 }
-

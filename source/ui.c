@@ -39,25 +39,29 @@ void graphicsInit(void)
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 50, OPAQUE_TEXT);
 }
 
+// Prints temperature and humidity to the display
 void printSensorData(int temp, int hum) {
     printf("[UI] Printing - Temperature: %d C\t humidity: %d %%\n", temp, hum);
     Graphics_clearDisplay(&g_sContext);
     char string[20];
+    sprintf(string, "AUTOMATIC");
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 30, OPAQUE_TEXT);
     sprintf(string, "Temperature: %d C", temp);
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 50, OPAQUE_TEXT);
     sprintf(string, "Humidity: %d %%", hum);
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 70, OPAQUE_TEXT);
-
 }
 
-// Prints current water level and displays next setting
+// Prints current water quantity and next setting on the display
 void printWaterSettings(int level){
     Graphics_clearDisplay(&g_sContext);
     char string[21];
     printf("[UI] Printing target water level: %d\n",level);
     
-    sprintf(string, "Water level:");
+    sprintf(string, "SETTINGS");
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 30, OPAQUE_TEXT);
+    sprintf(string, "Water level:");
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 50, OPAQUE_TEXT);
     if (level > WATER_MAX || level < 0) {
         level = WATER_MAX * (level > WATER_MAX);
         printf("[UI] ERROR: water level out of bounds\n");
@@ -69,39 +73,47 @@ void printWaterSettings(int level){
     } else {
         sprintf(string, "%d ml/day", level);
     }
-    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 50, OPAQUE_TEXT);
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 60, OPAQUE_TEXT);
     sprintf(string, "Next: humidity");
-    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 70, OPAQUE_TEXT);
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 90, OPAQUE_TEXT);
 }
 
+// Prints current target humidity and next setting on the display
 void printHumSettings(int level){
     Graphics_clearDisplay(&g_sContext);
     char string[21];
     printf("[UI] Printing target humidity level: %d\n",level);
     
-    sprintf(string, "Humidity level:");
+    sprintf(string, "SETTINGS");
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 30, OPAQUE_TEXT);
+    sprintf(string, "Humidity level:");
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 50, OPAQUE_TEXT);
     if (level > HUM_MAX || level < 0) {
         level = HUM_MAX * (level > HUM_MAX);
         printf("[UI] ERROR: humidity level out of bounds\n");
     } 
     if (level == HUM_MAX) {
         sprintf(string, "%d%% (MAX)", level);
+    } else if (level == 0) {
+        sprintf(string, "%d%% (MIN)", level);
     } else {
         sprintf(string, "%d%%", level);
     }  
-    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 50, OPAQUE_TEXT);
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 60, OPAQUE_TEXT);
     sprintf(string, "Next: temperature");
-    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 70, OPAQUE_TEXT);
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 90, OPAQUE_TEXT);
 }
 
+// Prints current target temperature and next setting on the display
 void printTempSettings(int level){
     Graphics_clearDisplay(&g_sContext);
     char string[21];
     printf("[UI] Printing target temperature : %d\n",level);
     
-    sprintf(string, "Temperature:");
+    sprintf(string, "SETTINGS");
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 30, OPAQUE_TEXT);
+    sprintf(string, "Temperature:");
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 50, OPAQUE_TEXT);
     if (level > TEMP_MAX) {
         level = TEMP_MAX;
         printf("[UI] ERROR: temp too high\n");
@@ -116,9 +128,9 @@ void printTempSettings(int level){
     } else {
         sprintf(string, "%d C", level);
     }  
-    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 50, OPAQUE_TEXT);
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 60, OPAQUE_TEXT);
     sprintf(string, "Next: quit");
-    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 70, OPAQUE_TEXT);
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 90, OPAQUE_TEXT);
 }
 
 // Prints on the screen the current hardware being used in manual mode
@@ -127,19 +139,23 @@ void printCurrentHardware(Hardware hw){
     // Adding fan again to simulate loop
     char string[12];
     const char *names[] = {"Pump", "Fan", "Humidifier", "Resistor", "Fan"};
+    bool states[] = {pump_state, fan_state, humidifier_state, resistor_state};
     Graphics_clearDisplay(&g_sContext);
     printf("[UI] Printing - Hardware: %s, next: %s\n", names[hw], names[hw+1]);
-    
+    sprintf(string, "MANUAL");
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 30, OPAQUE_TEXT);
     sprintf(string, "Current HW:");
-    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 30,
-    OPAQUE_TEXT);
-    Graphics_drawStringCentered(&g_sContext, (int8_t *)names[hw], 
-                                AUTO_STRING_LENGTH, 64, 50, OPAQUE_TEXT);
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 50, OPAQUE_TEXT);
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) names[hw], AUTO_STRING_LENGTH, 64, 70, OPAQUE_TEXT);
+    if (states[hw]) {
+        sprintf(string, "ON");
+    } else {
+        sprintf(string, "OFF");
+    }
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 60, OPAQUE_TEXT);
     sprintf(string, "Next:");
-    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 70,
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 90,
     OPAQUE_TEXT);
-    Graphics_drawStringCentered(&g_sContext, (int8_t *)names[hw+1], 
-                                AUTO_STRING_LENGTH, 64, 90, OPAQUE_TEXT);
-    
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) names[hw+1], AUTO_STRING_LENGTH, 64, 100, OPAQUE_TEXT);
 }
 

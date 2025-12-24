@@ -21,9 +21,9 @@
 // ------ 
 // Button press states as Flags
 #define EVT_NONE      0x00
-#define EVT_B1_PRESS  0x01  // 0001 // Settings
-#define EVT_B2_PRESS  0x02  // 0010 // Up (board)
-#define EVT_B3_PRESS  0x04  // 0100 // Down (board)
+#define EVT_B1_PRESS  0x01  // 0001 // Updated: Up (board)
+#define EVT_B2_PRESS  0x02  // 0010 // Down
+#define EVT_B3_PRESS  0x04  // 0100 // Settings (joystick)
 
 //------
 // FSM states

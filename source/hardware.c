@@ -24,7 +24,7 @@
 // Ports (absolutely arbitrary and to be redefined, except for buttons)
 const uint_fast8_t B1_PORT =                    GPIO_PORT_P5;   // S1 button
 const uint_fast8_t B2_PORT =                    GPIO_PORT_P3;   // S2 button
-const uint_fast8_t B3_PORT =                    GPIO_PORT_P1;   // S3 button (joystick)
+const uint_fast8_t B3_PORT =                    GPIO_PORT_P4;   // S3 button (joystick) (J1.5 = 4.1)
 const uint_fast8_t FAN_PORT =                   GPIO_PORT_P1;
 const uint_fast8_t PUMP_PORT =                  GPIO_PORT_P2;
 const uint_fast8_t LEVER_PORT =                 GPIO_PORT_P6;
@@ -35,7 +35,7 @@ const uint_fast8_t HUMIDIFIER_PORT =            GPIO_PORT_P4;
 // Pins (equally arbitrary)
 const uint_fast16_t B1_PIN =                    GPIO_PIN1;  // S1 button,before 1.1, now canged to 5.1
 const uint_fast16_t B2_PIN =                    GPIO_PIN5;  // S2 button, before 1.4, now changed to 3.5
-const uint_fast16_t B3_PIN =                    GPIO_PIN5;  // S3 button (joystick), before 1.5, now changed to 4.1
+const uint_fast16_t B3_PIN =                    GPIO_PIN1;  // S3 button (joystick)
 const uint_fast16_t FAN_PIN =                   GPIO_PIN0;
 const uint_fast16_t PUMP_PIN =                  GPIO_PIN1;
 const uint_fast16_t LEVER_PIN =                 GPIO_PIN4;
@@ -71,12 +71,14 @@ Graphics_Context g_sContext;
 // Button handler in port 1
 volatile uint8_t button_events = EVT_NONE;
 
-// variable timer flag 
+// Timer flags 
 volatile bool timer_flag = false;
 volatile bool three_s_flag = false;
 
-// contatore per il blocco dei rimbalzi (time lockout)
-volatile uint8_t debounce_countdown = 0; 
+// Prevents multiple button presses
+volatile uint8_t b1_debounce_countdown = 0; 
+volatile uint8_t b2_debounce_countdown = 0;
+volatile uint8_t b3_debounce_countdown = 0;
 
 // Duration of a pulse to toggle humidifier status (ms) - minimum tested is 50, +1 just to be sure
 const uint_fast8_t hum_pulse_duration_ms = 51;
@@ -139,7 +141,7 @@ void hwInit(void) {
     GPIO_clearInterruptFlag(B2_PORT, B2_PIN);
     GPIO_enableInterrupt(B2_PORT, B2_PIN);
 
-    // B3 = P1.5
+    // B3 = P4.1
     GPIO_setAsInputPinWithPullUpResistor(B3_PORT, B3_PIN);
     GPIO_interruptEdgeSelect(B3_PORT, B3_PIN, GPIO_HIGH_TO_LOW_TRANSITION);
     GPIO_clearInterruptFlag(B3_PORT, B3_PIN);
@@ -148,8 +150,10 @@ void hwInit(void) {
     // Lever
     GPIO_setAsInputPinWithPullUpResistor(LEVER_PORT, LEVER_PIN);
 
-    // Enable global interrupt  
-    Interrupt_enableInterrupt(INT_PORT1);
+    // Enable button interrupts (use NVIC interrupt numbers)
+    Interrupt_enableInterrupt(INT_PORT5);
+    Interrupt_enableInterrupt(INT_PORT3);
+    Interrupt_enableInterrupt(INT_PORT4);
 
     // PERIPHERALS (TIMERS)
     // Timer
@@ -198,22 +202,21 @@ void pauseHw(void){
     stopResistor();
     stopPump();
     // Block pump timer
-    printf("Stopping in puaseHW\n");
     pump_timer_state = false;
     // Should be last since it takes 2*hum_pulse_duration_ms
     stopHum(); 
 
-    // TODO!: verify: is it actually correct to stop this?
+    // TODO!: verify: is it actually correct to stop this? Removed for now as it messed up buttons logic
     //disable interrupt timer (stop counter)
-    Interrupt_disableInterrupt(INT_TA1_0);
+    // Interrupt_disableInterrupt(INT_TA1_0);
 }
 
 void resumeHw(void){
     // Updating will automatically resume everything
     updateHw();
     pump_timer_state = true;
-    //reume interrupt timer
-    Interrupt_enableInterrupt(INT_TA1_0);
+    // //reume interrupt timer
+    // Interrupt_enableInterrupt(INT_TA1_0);
 }
 
 
@@ -266,16 +269,19 @@ void TA1_0_IRQHandler(void){
     // clear hardware flag 
     Timer_A_clearCaptureCompareInterrupt(TIMER_A1_BASE, TIMER_A_CAPTURECOMPARE_REGISTER_0);
 
-    //gestione debounce: decrementa se maggiore di 0
-    if (debounce_countdown > 0) {
-        debounce_countdown--;
+    // Debounce managing
+    if (b1_debounce_countdown > 0) {
+        b1_debounce_countdown--;
+    }
+    if (b2_debounce_countdown > 0) {
+        b2_debounce_countdown--;
+    }
+    if (b3_debounce_countdown > 0) {
+        b3_debounce_countdown--;
     }
 
     // timer_flag == true --> period of time has passed
     timer_flag = true;
-
-    // implement normal mode interrupt functions
-    // TODO!
 
     // Service watchdog timer
     WDT_A_clearTimer();
@@ -292,9 +298,9 @@ void T32_INT2_IRQHandler(void){
     // The real call of the sensor read is outside the interrupt, in automatic mode
     three_s_flag = true;
 
-    // FOR DEBUGGING
-    printf("[DEBUG] | Temp: %d | Hum: %d | State: %d | Lever: %d | Watering: %d | Pump timer: %5d | Pump timer state: %d |\n", 
-    temperature_sensor_value, humidity_sensor_value, current_state, checkLever(), pump_state ,pump_timer, pump_timer_state);
+        // FOR DEBUGGING
+        // printf("[DEBUG] | Temp: %d | Hum: %d | State: %d | Lever: %d | Watering: %d | Pump timer: %5d | Pump timer state: %d |\n", 
+        // temperature_sensor_value, humidity_sensor_value, current_state, checkLever(), pump_state ,pump_timer, pump_timer_state);
     
     // target_water_ml -> ml/day
     // 3s/cycle
@@ -331,42 +337,54 @@ void T32_INT2_IRQHandler(void){
     WDT_A_clearTimer();
 }
 
-// Interrupt handler for port 1
-void PORT1_IRQHandler(void){
-    //legge lo stato di chi ha generato l'interrupt su tutta la porta
-    uint32_t status = GPIO_getEnabledInterruptStatus(GPIO_PORT_P1);
+// Interrupt handler for port 4 (B3)
+void PORT4_IRQHandler(void){
+    uint32_t status = GPIO_getEnabledInterruptStatus(B3_PORT);
+    GPIO_clearInterruptFlag(B3_PORT, status);
 
-    //clear all active interrupt flags
-    GPIO_clearInterruptFlag(GPIO_PORT_P1, status);
-
-    //SE E SOLO SE countdown arrivato a 0, accettiamo altri input, altrimenti ignoriamo il rimbalzo meccanico
-    if(debounce_countdown == 0){
-
-        bool valid_press = false;
-
-        // Use or to stack events when many happen at the same time
-        if (status & B1_PIN) {
-            button_events |= EVT_B1_PRESS;
-            valid_press = true;
-        }
-
-        if (status & B2_PIN) {
-            button_events |= EVT_B2_PRESS;
-            valid_press = true;
-        }
-
+    // Accept input only if debounce countdown is 0
+    if(b3_debounce_countdown == 0){
+        // B3 is on P1.5
         if (status & B3_PIN){
+            // printf("[ISR] Button 3 valid press\n");
             button_events |= EVT_B3_PRESS;
-            valid_press = true;
-        }
-
-        //se abbiamo registrato una pressione valida, block for 50ms
-        // 5 ticks * 10ms = 50ms
-        if(valid_press){
-            debounce_countdown = 5;
+            // Start debounce lockout if valid press detected
+            b3_debounce_countdown = 20;  // 20 ticks * 10ms = 200ms
         }
     }
-    // Service watchdog timer
+    WDT_A_clearTimer();
+}
+
+// Interrupt handler for port 3 (B2 only)
+void PORT3_IRQHandler(void){
+    uint32_t status = GPIO_getEnabledInterruptStatus(B2_PORT);
+    GPIO_clearInterruptFlag(B2_PORT, status);
+
+    // Accept input only if debounce countdown is 0
+    if(b2_debounce_countdown == 0){
+        // B2 is on P3.5
+        if (status & B2_PIN){
+            // printf("[ISR] Button 2 valid press\n");
+            button_events |= EVT_B2_PRESS;
+            b2_debounce_countdown = 20; 
+        }
+    }
+    WDT_A_clearTimer();
+}
+// Interrupt handler for port 5 (B1 only)
+void PORT5_IRQHandler(void){
+    uint32_t status = GPIO_getEnabledInterruptStatus(B1_PORT);
+    GPIO_clearInterruptFlag(B1_PORT, status);
+
+    // Accept input only if debounce countdown is 0
+    if(b1_debounce_countdown == 0){
+        // B1 is on P5.1
+        if (status & B1_PIN){
+            // printf("[ISR] Button 1 valid press\n");
+            button_events |= EVT_B1_PRESS;
+            b1_debounce_countdown = 20;
+        }
+    }
     WDT_A_clearTimer();
 }
 
@@ -378,7 +396,7 @@ void readSensors(void){
         temperature_sensor_value = data.temperature;
         humidity_sensor_value = data.humidity;
     }
-    printf("[HARDWARE] Reading sensor data: %3d, %3d. Error: %d\n", data.temperature, data.humidity, dht22_error_flag);
+    // printf("[HARDWARE] Reading sensor data: %3d, %3d. Error: %d\n", data.temperature, data.humidity, dht22_error_flag);
 }
 
 // ---- Hardware start/stop functions ----
@@ -448,5 +466,7 @@ bool checkLever(void){
     // HIGH = auto (true), LOW = manual (false)
     // This defaults to AUTO if there is no lever   
     // When the lever closes/switches, it shorts the pin to GND and pin reads LOW.
-    return (lever_state == 0); 
+    // TODO: decide what to do when this turns to manual during settings. Ignore or drop settings?
+    return (lever_state != 0); 
+    
 }
