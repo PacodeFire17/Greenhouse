@@ -182,8 +182,10 @@ void automatic(){
         // TEMPERATURE
         if (temperature_sensor_value > (target_temp_c + TEMP_STEP)) {
             fan_state = true;
-        } else if (temperature_sensor_value < target_temp_c){
+            resistor_state = false;
+        } else if (temperature_sensor_value < target_temp_c - TEMP_STEP){
             fan_state = false;
+            resistor_state = true;
         }
 
         // HUMIDITY
@@ -192,24 +194,18 @@ void automatic(){
         } else if (humidity_sensor_value > target_humidity_pct) {
             humidifier_state = false;
         }
-
+        // Moved Update here to act only when there is a variation of sensor values
+        updateHw();
     }
     // Check if settings button has been pressed
     if (button_events & EVT_B3_PRESS) {
-            button_events &= 0;
-            current_state = STATE_SET_WATER;
-    } else {
-        updateHw();
-    }
-
-    // TODO! Do we need this?
-    // We can create a function that updates the prints based on the context and run it only when something changes
-    // refresh of LCD
-    // static int ui_refresh = 0;
-    // if (++ui_refresh >= 50) { // Aggiorna ogni 50 cicli (circa 0.5s)
-    //     ui_refresh = 0;
-    //     printSensorData(temperature_sensor_value, humidity_sensor_value);
-    // }
+        // Clear ALL button events to prevent stale events from bleeding into settings
+        button_events = EVT_NONE;
+        // Pause HW and proceed to settings
+        pauseHw();
+        current_state = STATE_SET_WATER;
+        printWaterSettings(target_water_ml);
+    } 
 }
 
 // Sets current state depending on the value read by the status lever
@@ -257,7 +253,7 @@ void fn_next_state(void) {
 
         case STATE_SET_HUM:
             current_state = STATE_SET_TEMP;
-            printTempSettings(current_hw);
+            printTempSettings(target_temp_c);
             break;
 
         default: // handle both set_temp and all others in case of error
@@ -275,7 +271,7 @@ void fn_next_state(void) {
 // Functions for changing target settings
 void fn_SET_WATER(void){
     bool is_updated = false;
-    pauseHw();
+    // pauseHw();
     // up
     if (button_events & EVT_B1_PRESS) {
         is_updated = true;
@@ -298,24 +294,23 @@ void fn_SET_WATER(void){
         // Clear the B2 flag
         button_events &= ~EVT_B2_PRESS;
     }
-    // Settings
-    if (button_events & EVT_B3_PRESS) {
-        is_updated = true;
-        // Move to next state
-        fn_next_state();
-
-        // Clear all flags when changing
-        button_events &= 0;
-    }
     // update screen only if there is an update
     if (is_updated){
         printWaterSettings(target_water_ml);
+    }
+    // Settings
+    if (button_events & EVT_B3_PRESS) {
+        // Move to next state
+        fn_next_state();
+
+        // Clear the flags
+        button_events = EVT_NONE;
     }
 }
 
 void fn_SET_HUMIDITY(void){
     bool is_updated = false;    
-    pauseHw();
+    // pauseHw();
     if (button_events & EVT_B1_PRESS) {
         is_updated = true;
         target_humidity_pct += HUM_STEP;
@@ -336,23 +331,22 @@ void fn_SET_HUMIDITY(void){
         // Clear the B2 flag
         button_events &= ~EVT_B2_PRESS;
     }
-    if (button_events & EVT_B3_PRESS) {
-        is_updated = true;
-        // Move to next state
-        fn_next_state();
-
-        // Clear the B3 flag
-        button_events &= ~EVT_B3_PRESS;
-    }
     // update screen only if there is an update
     if (is_updated){
         printHumSettings(target_humidity_pct);
+    }
+    if (button_events & EVT_B3_PRESS) {
+        // Move to next state
+        fn_next_state();
+
+        // Clear the flags
+        button_events = EVT_NONE;
     }
 }
 
 void fn_SET_TEMP(void){
     bool is_updated = false;
-    pauseHw();
+    // pauseHw();
     if (button_events & EVT_B1_PRESS) {
         is_updated = true;
         target_temp_c += TEMP_STEP;
@@ -371,16 +365,15 @@ void fn_SET_TEMP(void){
         // Clear the B2 flag
         button_events &= ~EVT_B2_PRESS;
     }
-    if (button_events & EVT_B3_PRESS) {
-        is_updated = true;
-        // Move to next state
-        fn_next_state();
-
-        // Clear the B3 flag
-        button_events &= ~EVT_B3_PRESS;
-    }
     // update screen only if there is an update
     if (is_updated){
         printTempSettings(target_temp_c);
+    }
+    if (button_events & EVT_B3_PRESS) {
+        // Move to next state
+        fn_next_state();
+
+        // Clear the flags
+        button_events = EVT_NONE;
     }
 }

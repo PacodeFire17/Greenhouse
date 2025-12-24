@@ -57,7 +57,7 @@ void sys_init_logic(void) {
         // Set Defaults
         target_temp_c = 25;
         target_humidity_pct = 50;
-        target_water_ml = 100;
+        target_water_ml = 150;
         
         // Save these defaults immediately
         settings_store.stored_temp = target_temp_c;

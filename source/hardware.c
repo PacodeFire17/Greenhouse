@@ -198,6 +198,10 @@ void hwInit(void) {
 
 // Function to interrupt all active hardware
 void pauseHw(void){
+    fan_state = false;
+    pump_state = false;
+    resistor_state = false;
+    humidifier_state = false;
     stopFan();
     stopResistor();
     stopPump();
@@ -298,16 +302,18 @@ void T32_INT2_IRQHandler(void){
     // The real call of the sensor read is outside the interrupt, in automatic mode
     three_s_flag = true;
 
-        // FOR DEBUGGING
-        // printf("[DEBUG] | Temp: %d | Hum: %d | State: %d | Lever: %d | Watering: %d | Pump timer: %5d | Pump timer state: %d |\n", 
-        // temperature_sensor_value, humidity_sensor_value, current_state, checkLever(), pump_state ,pump_timer, pump_timer_state);
+        // Useful prints for debugging
+    // printf("[DEBUG] | Temp: %d | Hum: %d | State: %d | Lever: %d | Watering: %d | Pump timer: %5d | Pump timer state: %d |\n", 
+    // temperature_sensor_value, humidity_sensor_value, current_state, checkLever(), pump_state ,pump_timer, pump_timer_state);
+    // printf("[DEBUG] | Pump: %d | Hum: %d | Res: %d | Fan: %d | current/target temp: %d C/%d C | current/target hum: %d %%/%d %% |\n", 
+    // pump_state, humidifier_state, resistor_state, fan_state, temperature_sensor_value, target_temp_c, humidity_sensor_value, target_humidity_pct);
     
     // target_water_ml -> ml/day
     // 3s/cycle
     // 300ml/min -> 300/20 = 15ml/cycle
     // Supposing we water the plant every 12h (12*3600/3=14400 cycles)
     // Cycles/watering = target_water_ml/2/15
-    // For 150ml, cycles = 150/30 = 50
+    // For 150ml, cycles = 150/30 = 5
 
     // Only perform this logic if the pump is not paused
     if (pump_timer_state) {
@@ -355,7 +361,7 @@ void PORT4_IRQHandler(void){
     WDT_A_clearTimer();
 }
 
-// Interrupt handler for port 3 (B2 only)
+// Interrupt handler for port 3 (B2)
 void PORT3_IRQHandler(void){
     uint32_t status = GPIO_getEnabledInterruptStatus(B2_PORT);
     GPIO_clearInterruptFlag(B2_PORT, status);
@@ -371,7 +377,8 @@ void PORT3_IRQHandler(void){
     }
     WDT_A_clearTimer();
 }
-// Interrupt handler for port 5 (B1 only)
+
+// Interrupt handler for port 5 (B1)
 void PORT5_IRQHandler(void){
     uint32_t status = GPIO_getEnabledInterruptStatus(B1_PORT);
     GPIO_clearInterruptFlag(B1_PORT, status);

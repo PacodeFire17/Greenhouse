@@ -35,13 +35,13 @@ void graphicsInit(void)
     GrContextFontSet(&g_sContext, &g_sFontFixed6x8);
     Graphics_clearDisplay(&g_sContext);
     char string[16];
-    sprintf(string, "Initializing...");
+    sprintf(string, "Starting...");
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 50, OPAQUE_TEXT);
 }
 
 // Prints temperature and humidity to the display
 void printSensorData(int temp, int hum) {
-    printf("[UI] Printing - Temperature: %d C\t humidity: %d %%\n", temp, hum);
+    // printf("[UI] Printing - Temperature: %d C\t humidity: %d %%\n", temp, hum);
     Graphics_clearDisplay(&g_sContext);
     char string[20];
     sprintf(string, "AUTOMATIC");
@@ -136,8 +136,8 @@ void printTempSettings(int level){
 // Prints on the screen the current hardware being used in manual mode
 void printCurrentHardware(Hardware hw){
     // No input check is required, since Hardware is between 0 and 3
-    // Adding fan again to simulate loop
     char string[12];
+    // Includes fan twice to simulate loop
     const char *names[] = {"Pump", "Fan", "Humidifier", "Resistor", "Fan"};
     bool states[] = {pump_state, fan_state, humidifier_state, resistor_state};
     Graphics_clearDisplay(&g_sContext);
@@ -146,13 +146,13 @@ void printCurrentHardware(Hardware hw){
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 30, OPAQUE_TEXT);
     sprintf(string, "Current HW:");
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 50, OPAQUE_TEXT);
-    Graphics_drawStringCentered(&g_sContext, (int8_t *) names[hw], AUTO_STRING_LENGTH, 64, 70, OPAQUE_TEXT);
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) names[hw], AUTO_STRING_LENGTH, 64, 60, OPAQUE_TEXT);
     if (states[hw]) {
         sprintf(string, "ON");
     } else {
         sprintf(string, "OFF");
     }
-    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 60, OPAQUE_TEXT);
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 70, OPAQUE_TEXT);
     sprintf(string, "Next:");
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 90,
     OPAQUE_TEXT);
