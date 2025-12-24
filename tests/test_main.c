@@ -18,6 +18,7 @@
     volatile int16_t humidity_sensor_value = 0;
     volatile int16_t temperature_sensor_value = 0;
     volatile uint8_t button_events = EVT_NONE;
+    volatile bool timer_flag = false;  
     volatile bool three_s_flag = false;
 
     // Mock extra for the test
@@ -97,10 +98,10 @@
         current_state = STATE_AUTOMATIC;
         target_temp_c = 25;
         fan_state = true; // pre-set ON
-        temperature_sensor_value = 24;
+        temperature_sensor_value = 23;
         three_s_flag = true;
         automatic();
-        assert_true(fan_state == false, "Fan OFF when temp < target");
+        assert_true(fan_state == false, "Fan OFF when temp < target - TEMP_STEP");
 
         printf("\n--- Test A2: Temp at target ---\n");
         reset_manual_context();
@@ -186,23 +187,23 @@
         reset_manual_context();
         current_state = STATE_SET_WATER;
         target_water_ml = 100;
-        button_events = EVT_B2_PRESS;
+        button_events = EVT_B1_PRESS;
         fn_SET_WATER();
-        assert_true(target_water_ml == 110, "Water increased by 10ml");
+        assert_true(target_water_ml == 130, "Water increased by 30ml");
 
         printf("\n--- Test S2: Decrease water ---\n");
         reset_manual_context();
         current_state = STATE_SET_WATER;
         target_water_ml = 50;
-        button_events = EVT_B3_PRESS;
+        button_events = EVT_B2_PRESS;
         fn_SET_WATER();
-        assert_true(target_water_ml == 40, "Water decreased by 10ml");
+        assert_true(target_water_ml == 20, "Water decreased by 30ml");
 
         printf("\n--- Test S3: Water at max boundary ---\n");
         reset_manual_context();
         current_state = STATE_SET_WATER;
         target_water_ml = WATER_MAX;
-        button_events = EVT_B2_PRESS;
+        button_events = EVT_B1_PRESS;
         fn_SET_WATER();
         assert_true(target_water_ml == WATER_MAX, "Water does not exceed max when attempting to add water");
 
@@ -218,7 +219,7 @@
         reset_manual_context();
         current_state = STATE_SET_WATER;
         target_water_ml = 100;
-        button_events = EVT_B2_PRESS | EVT_B3_PRESS;  // Both pressed
+        button_events = EVT_B2_PRESS | EVT_B1_PRESS;  // Both pressed
         fn_SET_WATER();
         assert_true(target_water_ml == 100, "Simultaneous increase/decrease cancel out correctly");
 
@@ -228,26 +229,26 @@
         target_water_ml = 100;
         int i = 0;
         for(; i<5; i++){
-            button_events = EVT_B2_PRESS;
+            button_events = EVT_B1_PRESS;
             fn_SET_WATER();
         }
         assert_true(target_water_ml == 100 + 5*WATER_STEP, "Water incremented correctly after 5 rapid presses");
 
-        printf("\n--- Test S7: B1 + B2 simultaneous ---\n");
+        printf("\n--- Test S7: B1 + B3 simultaneous ---\n");
         reset_manual_context();
         current_state = STATE_SET_WATER;
         target_water_ml = 100;
-        button_events = EVT_B1_PRESS | EVT_B2_PRESS;
+        button_events = EVT_B1_PRESS | EVT_B3_PRESS;
         fn_SET_WATER();
         // B1 should always take priority and move to next state, water level may or may not increase, check the debug output
-        assert_true(current_state == STATE_SET_HUM, "B1 takes priority, moves to next state");
+        assert_true(current_state == STATE_SET_HUM, "B3 takes priority, moves to next state");
 
 
         // ================= MANUAL =================
         printf("\n--- Test M1: Manual PUMP ON ---\n");
         reset_manual_context();
         current_hw = PUMP;
-        button_events = EVT_B2_PRESS;
+        button_events = EVT_B1_PRESS;
         manual();
         assert_true(pump_state == true, "Pump ON with B2");
 
@@ -255,7 +256,7 @@
         reset_manual_context();
         current_hw = PUMP;
         pump_state = true;
-        button_events = EVT_B1_PRESS;
+        button_events = EVT_B3_PRESS;
         manual();
         assert_true(current_hw == FAN, "Switched to FAN");
         assert_true(pump_state == false, "Pump OFF on switch");
@@ -280,30 +281,30 @@
         printf("\n--- Test T3: STATE_SET_WATER -> STATE_SET_HUM ---\n");
         reset_manual_context();
         current_state = STATE_SET_WATER;
-        button_events = EVT_B1_PRESS;
+        button_events = EVT_B3_PRESS;
         fn_SET_WATER();
-        assert_true(current_state == STATE_SET_HUM, "SET_WATER -> SET_HUM via B1");
+        assert_true(current_state == STATE_SET_HUM, "SET_WATER -> SET_HUM via B3");
 
         printf("\n--- Test T4: STATE_SET_HUM -> STATE_SET_TEMP ---\n");
         reset_manual_context();
         current_state = STATE_SET_HUM;
-        button_events = EVT_B1_PRESS;
+        button_events = EVT_B3_PRESS;
         fn_SET_HUMIDITY();
-        assert_true(current_state == STATE_SET_TEMP, "SET_HUM -> SET_TEMP via B1");
+        assert_true(current_state == STATE_SET_TEMP, "SET_HUM -> SET_TEMP via B3");
 
         printf("\n--- Test T5: SET_TEMP -> AUTO ---\n");
         reset_manual_context();
         current_state = STATE_SET_TEMP;
         mock_lever_position = true;  // AUTO
-        button_events = EVT_B1_PRESS;
+        button_events = EVT_B3_PRESS;
         fn_SET_TEMP();
-        assert_true(current_state == STATE_AUTOMATIC, "SET_TEMP -> AUTOMATIC via B1");
+        assert_true(current_state == STATE_AUTOMATIC, "SET_TEMP -> AUTOMATIC via B3");
 
         printf("\n--- Test T6: SET_TEMP -> MANUAL ---\n");
         reset_manual_context();
         current_state = STATE_SET_TEMP;
         mock_lever_position = false;  // MANUAL
-        button_events = EVT_B1_PRESS;
+        button_events = EVT_B3_PRESS;
         fn_SET_TEMP();
         assert_true(current_state == STATE_MANUAL,"SET_TEMP -> MANUAL");
 

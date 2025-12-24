@@ -17,10 +17,13 @@ The tests in `test_main.c` check the program logic, not the hardware.
 ## How to run the test suite
 
 Run this command in the root of the project to compile in `TEST_MODE`:
+
 ```bash
 gcc -I include -DTEST_MODE tests/test_main.c source/states.c -o tests/test_suite
 ```
+
 And to execute:
+
 ```bash
 ./tests/test_suite
 ```
@@ -29,6 +32,6 @@ And to execute:
 
 ## Hardware tests
 
-Hardware tests require human observation. 
+Hardware tests require human observation.
 The desired output of the Hardware is printed on the console to be compared with the real outcome.
-To run these tests currently there is no other way if not running the content of the if as if it was the main file.
+To run these tests, execute the content of the test files as if they were the main file.
