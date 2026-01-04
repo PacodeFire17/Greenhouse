@@ -25,7 +25,7 @@
 const uint_fast8_t B1_PORT =                    GPIO_PORT_P5;   // S1 button
 const uint_fast8_t B2_PORT =                    GPIO_PORT_P3;   // S2 button
 const uint_fast8_t B3_PORT =                    GPIO_PORT_P4;   // S3 button (joystick) (J1.5 = 4.1)
-const uint_fast8_t FAN_PORT =                   GPIO_PORT_P1;
+const uint_fast8_t FAN_PORT =                   GPIO_PORT_P2;
 const uint_fast8_t PUMP_PORT =                  GPIO_PORT_P2;
 const uint_fast8_t LEVER_PORT =                 GPIO_PORT_P6;
 const uint_fast8_t SWITCH_PORT =                GPIO_PORT_P2;
@@ -36,8 +36,8 @@ const uint_fast8_t HUMIDIFIER_PORT =            GPIO_PORT_P4;
 const uint_fast16_t B1_PIN =                    GPIO_PIN1;  // S1 button,before 1.1, now canged to 5.1
 const uint_fast16_t B2_PIN =                    GPIO_PIN5;  // S2 button, before 1.4, now changed to 3.5
 const uint_fast16_t B3_PIN =                    GPIO_PIN1;  // S3 button (joystick)
-const uint_fast16_t FAN_PIN =                   GPIO_PIN0;
-const uint_fast16_t PUMP_PIN =                  GPIO_PIN1;
+const uint_fast16_t FAN_PIN =                   GPIO_PIN7;
+const uint_fast16_t PUMP_PIN =                  GPIO_PIN5;
 const uint_fast16_t LEVER_PIN =                 GPIO_PIN4;
 const uint_fast16_t SWITCH_PIN =                GPIO_PIN2;
 const uint_fast16_t RESISTOR_PIN =              GPIO_PIN2;
