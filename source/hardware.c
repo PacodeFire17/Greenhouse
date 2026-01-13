@@ -28,21 +28,19 @@ const uint_fast8_t B3_PORT =                    GPIO_PORT_P4;   // S3 button (jo
 const uint_fast8_t FAN_PORT =                   GPIO_PORT_P2;
 const uint_fast8_t PUMP_PORT =                  GPIO_PORT_P2;
 const uint_fast8_t LEVER_PORT =                 GPIO_PORT_P6;
-const uint_fast8_t SWITCH_PORT =                GPIO_PORT_P2;
 const uint_fast8_t RESISTOR_PORT =              GPIO_PORT_P3;
-const uint_fast8_t HUMIDIFIER_PORT =            GPIO_PORT_P4;
+const uint_fast8_t HUMIDIFIER_PORT =            GPIO_PORT_P4;  // Bug to be checked out: it works in tests but not in main file. Sometimes causes a press in b3 and turns on only after. Voltage in control pin stays high. Stable bug: it stays off while in humidifier manual setting, but turns on when passing to next setting.
 
 // Pins (equally arbitrary)
 const uint_fast16_t B1_PIN =                    GPIO_PIN1;  // S1 button,before 1.1, now canged to 5.1
 const uint_fast16_t B2_PIN =                    GPIO_PIN5;  // S2 button, before 1.4, now changed to 3.5
 const uint_fast16_t B3_PIN =                    GPIO_PIN1;  // S3 button (joystick)
-const uint_fast16_t FAN_PIN =                   GPIO_PIN7;
-const uint_fast16_t PUMP_PIN =                  GPIO_PIN5;
+const uint_fast16_t FAN_PIN =                   GPIO_PIN5;  // Bug to be checked out: power to this pin brierfly turns on in auto mode every 3s
+const uint_fast16_t PUMP_PIN =                  GPIO_PIN7;  // Changed to higher power pin
 const uint_fast16_t LEVER_PIN =                 GPIO_PIN4;
-const uint_fast16_t SWITCH_PIN =                GPIO_PIN2;
 const uint_fast16_t RESISTOR_PIN =              GPIO_PIN2;
-const uint_fast16_t HUMIDIFIER_POWER_PIN =      GPIO_PIN3;
-const uint_fast16_t HUMIDIFIER_SIGNAL_PIN =     GPIO_PIN1;
+const uint_fast16_t HUMIDIFIER_POWER_PIN =      GPIO_PIN7;  // should be returned to 3 if tests do not work
+const uint_fast16_t HUMIDIFIER_SIGNAL_PIN =     GPIO_PIN2;  // Changed to prevent conflict with button also in 4.1
 
 // Status flags
 bool fan_state =        false;
@@ -403,7 +401,7 @@ void readSensors(void){
         temperature_sensor_value = data.temperature;
         humidity_sensor_value = data.humidity;
     }
-    // printf("[HARDWARE] Reading sensor data: %3d, %3d. Error: %d\n", data.temperature, data.humidity, dht22_error_flag);
+    printf("[HARDWARE] Reading sensor data: %3d, %3d. Error: %d\n", data.temperature, data.humidity, dht22_error_flag);
 }
 
 // ---- Hardware start/stop functions ----

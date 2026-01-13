@@ -16,8 +16,8 @@
 #endif
 
 // Hardware configuration
-#define DHT22_PORT P2
-#define DHT22_PIN BIT5
+#define DHT22_PORT P3
+#define DHT22_PIN BIT0
 
 //DHT22 Data structure
 typedef struct {    

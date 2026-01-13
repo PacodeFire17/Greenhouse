@@ -14,8 +14,8 @@
 #endif
 
 // Somehow these are required despite being defined in the .h file
-#define DHT22_PORT P2
-#define DHT22_PIN BIT5
+#define DHT22_PORT P3
+#define DHT22_PIN BIT0
 
 // External variable provided by the CMSIS system file 
 // it holds the current CPU frequency

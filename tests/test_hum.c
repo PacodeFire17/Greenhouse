@@ -13,7 +13,7 @@
 
     const uint_fast8_t HUMIDIFIER_PORT_ =            GPIO_PORT_P4;
     const uint_fast16_t HUMIDIFIER_POWER_PIN_ =      GPIO_PIN3;
-    const uint_fast16_t HUMIDIFIER_SIGNAL_PIN_ =     GPIO_PIN1;
+    const uint_fast16_t HUMIDIFIER_SIGNAL_PIN_ =     GPIO_PIN2;
 
     void delay_us(uint32_t us) {
         SysTick->LOAD = (us * 3) - 1; // 3 MHz (MSP432 default clock speed)
@@ -33,7 +33,6 @@
 
     int main(void){
         int pulse_duration_ms = 50;
-        int pause_duration_ms = 1;
         // Halt watchdog timer
         WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;
 
