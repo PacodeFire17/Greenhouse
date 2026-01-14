@@ -45,15 +45,15 @@ Pins are defined in `source/hardware.c`. The pin configuration used in this proj
 To supply power to power-hungry peripherals (fan, pump, resistor, humidifier power) an external transistor is used. The signal from the board opens the gate, aiming at reaching saturation to drive the actuators.
 
 
-Here an example ciruit.
-
-**System High-Level Block Diagram**
+Here some example ciruits.
+  
+### System High-Level Block Diagram
 ![System High-Level Block Diagram](asset/SimpleScheme.png)
-
-**Input Interface Schematic (Buttons/Switches)**
+  
+### Input Interface Schematic (Buttons/Switches)
 ![Input Interface Schematic (Buttons/Switches)](asset/SwichScheme.png)
-
-**Power Control Circuitry**
+  
+### Power Control Circuitry
 ![Power Control Circuitry](asset/CompleteScheme.png)
 
 ## Project Structure
