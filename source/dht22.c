@@ -26,6 +26,7 @@ extern uint32_t SystemCoreClock;
 // Adapt automatically to the current CPU clock speed
 static void Delay_us(uint32_t us) {
     // Calculate cycles needed 
+    SystemCoreClockUpdate(); // update SystemCoreClock variable
     uint32_t cycles = (SystemCoreClock / 1000000) * us;
 
     // Configure SysTick for a one-shot delay
@@ -99,43 +100,78 @@ bool DHT22_Read(DHT22_Data_t *data) {
 
     // --- Response Check ---
     // Wait low (80us)
-    timeout = 1000; 
+    timeout = 10000;
     while ((DHT22_PORT->IN & DHT22_PIN) && --timeout);
-    if (timeout == 0) { __enable_irq(); return false; }
+    if (timeout == 0) {
+        __enable_irq();
+        printf("Timeout 1 \n");
+        return false;
+    }
 
     // Wait high (80us)
     timeout = 1000;
     while (!(DHT22_PORT->IN & DHT22_PIN) && --timeout);
-    if (timeout == 0) { __enable_irq(); return false; }
+    if (timeout == 0) {
+        __enable_irq();
+        printf("Timeout 2 \n");
+        return false;
+    }
+
+    // Wait for the end of the response signal (line goes low to start transmission)
+    timeout = 10000;
+    while ((DHT22_PORT->IN & DHT22_PIN) && --timeout);
+    if (timeout == 0) {
+        __enable_irq();
+        printf("Timeout Response End \n");
+        return false;
+    }
 
     // --- Read Data 40 BIT ---
 
-    //guardare commento in Delay_ms
+    // Setup SysTick for measurement
+    SysTick->LOAD = 0xFFFFFF;
+    SysTick->VAL = 0;
+    SysTick->CTRL = SysTick_CTRL_ENABLE_Msk | SysTick_CTRL_CLKSOURCE_Msk;
+
+    uint32_t tStart, tEnd, width;
     int i = 0;
     for (i = 0; i < 40; ++i)
     {
         // Wait for start of bit
-        timeout = 1000;
+        timeout = 10000;
         while(!(DHT22_PORT->IN & DHT22_PIN) && --timeout);
-        if (timeout == 0){ __enable_irq(); return false;}
+        if (timeout == 0){
+            __enable_irq();
+            printf("Timeout 3 \n");
+            SysTick->CTRL = 0;
+            return false;
+        }
 
         // Measure the duration of the high state
-        pulse = 0;  
+        tStart = SysTick->VAL;
         while((DHT22_PORT->IN & DHT22_PIN)){
-            pulse++;
-            if (pulse > 1000){ __enable_irq(); return false; }
+             // Safety timeout: > 100us (approx 5000 ticks at 48MHz)
+             if (((tStart - SysTick->VAL) & 0xFFFFFF) > 5000){
+                __enable_irq();
+                printf("Timeout 4 \n");
+                SysTick->CTRL = 0;
+                return false; 
+             }
         }
+        tEnd = SysTick->VAL;
+        width = (tStart - tEnd) & 0xFFFFFF;
 
         // Determine bit value (0 or 1)
         // '0' is ~26-28us, '1' is ~70us.
-        // The threshold depends on CPU speed. For 48MHz, a loop count > 30 
-        // safely distinguishes the long pulse from the short one.
+        // Threshold: 50us. 50us * 48MHz = 2400 ticks.
         idx = i / 8;
         bits[idx] <<= 1;
-        if (pulse > 30) { 
+        if (width > 2400) {
             bits[idx] |= 1;
         }
     }
+
+    SysTick->CTRL = 0;
 
     // --- Enable Interrupts --- (critical section end)
     __enable_irq();
@@ -143,13 +179,15 @@ bool DHT22_Read(DHT22_Data_t *data) {
 
     // --- Checksum ---
     // Sum of the first 4 bytes must be equal to the 5th byte
-        if ((uint8_t)(bits[0] + bits[1] + bits[2] + bits[3]) != bits[4]) {
+    if ((uint8_t)(bits[0] + bits[1] + bits[2] + bits[3]) != bits[4]) {
+        printf("checksum failed \n");
+        printf("0: %d, 1: %d, 2:%d, 3: %d, 4:%d \n", bits[0], bits[1], bits[2], bits[3], bits[4]);
         return false;
     }
 
     // --- Conversion to Fixed Point ---
     // Humidity: bits[0] and bits[1]
-    data->humidity = (bits[0] << 8) | bits[1];
+    int16_t humRaw = (bits[0] << 8) | bits[1];
 
     // Temperature: bits[2] and bits[3]
     int16_t tempRaw = (bits[2] << 8) | bits[3];
@@ -161,11 +199,15 @@ bool DHT22_Read(DHT22_Data_t *data) {
 
     // Divide by 10 to store data into an int8_t
     data->temperature = tempRaw / 10;
-    data->humidity = (data->humidity) / 10;
+    data->humidity = humRaw / 10;
 
     //Check if data is within expected range (invalid otherwise)
     if (data->temperature < 0 || data ->temperature > 100
-            || data->humidity < 0 || data->humidity > 100) return false;
+            || data->humidity < 0 || data->humidity > 100) {
+        printf("Problem here \n");
+        return false;
+    }
+
 
     return true;
 }
