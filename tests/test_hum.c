@@ -1,5 +1,5 @@
 #ifdef TEST_MODE
-    #include <ti/devices/msp432p4xx/driverlib/driverlib.h>
+#include <ti/devices/msp432p4xx/driverlib/driverlib.h>
     #include "LcdDriver/Crystalfontz128x128_ST7735.h"
     #include <ti/devices/msp432p4xx/inc/msp.h>
     #include <ti/grlib/grlib.h>
@@ -12,15 +12,17 @@
     #include "dht22.h"
 
     const uint_fast8_t HUMIDIFIER_PORT_ =            GPIO_PORT_P4;
-    const uint_fast16_t HUMIDIFIER_POWER_PIN_ =      GPIO_PIN3;
-    const uint_fast16_t HUMIDIFIER_SIGNAL_PIN_ =     GPIO_PIN2;
+    const uint_fast16_t HUMIDIFIER_POWER_PIN_ =      GPIO_PIN5;
+    const uint_fast16_t HUMIDIFIER_SIGNAL_PIN_ =     GPIO_PIN7;
 
     void delay_us(uint32_t us) {
-        SysTick->LOAD = (us * 3) - 1; // 3 MHz (MSP432 default clock speed)
+        // 48 MHz clock -> 48 ticks per us
+        SysTick->LOAD = (us * 48) - 1;
         SysTick->VAL = 0;
-        SysTick->CTRL |= 0x00000001; // Enable SysTick timer
-        while ((SysTick->CTRL & 0x00010000) == 0); // Wait for COUNTFLAG
-        SysTick->CTRL &= ~0x00000001; // Disable SysTick timer
+        // Enable SysTick timer with Process Clock (Bit 2 = 1)
+        SysTick->CTRL = SysTick_CTRL_ENABLE_Msk | SysTick_CTRL_CLKSOURCE_Msk;
+        while ((SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) == 0); // Wait for COUNTFLAG
+        SysTick->CTRL = 0; // Disable SysTick timer
     }
 
     void delay_ms(uint32_t ms) {
@@ -36,13 +38,23 @@
         // Halt watchdog timer
         WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;
 
+        // Initialize Clock System to 48 MHz
+        PCM_setCoreVoltageLevel(PCM_VCORE1);
+        FlashCtl_setWaitState(FLASH_BANK0, 2);
+        FlashCtl_setWaitState(FLASH_BANK1, 2);
+        CS_setDCOCenteredFrequency(CS_DCO_FREQUENCY_48);
+        CS_initClockSignal(CS_MCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
+        CS_initClockSignal(CS_HSMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
+        CS_initClockSignal(CS_SMCLK, CS_DCOCLK_SELECT, CS_CLOCK_DIVIDER_1);
+
         // Output config
         GPIO_setAsOutputPin(HUMIDIFIER_PORT_, HUMIDIFIER_POWER_PIN_);
         GPIO_setAsOutputPin(HUMIDIFIER_PORT_, HUMIDIFIER_SIGNAL_PIN_);
         // Turn off all
         GPIO_setOutputLowOnPin(HUMIDIFIER_PORT_, HUMIDIFIER_POWER_PIN_);
         GPIO_setOutputLowOnPin(HUMIDIFIER_PORT_, HUMIDIFIER_SIGNAL_PIN_);
-
+        printf("Initialized, waiting 5s\n");
+        delay_ms(5000);
 
 
         // --- CYCLING 5 times on/off ---
