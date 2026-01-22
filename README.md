@@ -53,7 +53,7 @@ Here some example ciruits.
 ### Input Interface Schematic (Buttons/Switches)
 ![Input Interface Schematic (Buttons/Switches)](asset/SwichScheme.png)
   
-### Power Control Circuitry
+### Complete Circuitry Scheme
 ![Power Control Circuitry](asset/CompleteScheme.png)
 
 ## Project Structure
