@@ -29,6 +29,8 @@ int target_water_ml = 150;
 int target_humidity_pct = 50;
 int target_temp_c = 25;
 
+uint16_t old_temp = 0;
+uint16_t old_hum = 0;
 Hardware current_hw = PUMP;
 
 
@@ -173,8 +175,11 @@ void automatic(){
     // Sensor value update (managed by interrupt now; moved all logic depending on this value in the if)
     if (three_s_flag) {
         three_s_flag = false;
+        old_temp = temperature_sensor_value;
+        old_hum = humidity_sensor_value;
         readSensors();
-        printSensorData(temperature_sensor_value, humidity_sensor_value);
+        if(old_temp != temperature_sensor_value || old_hum != temperature_sensor_value)
+            printSensorData(temperature_sensor_value, humidity_sensor_value);
     
 
         // control logic
