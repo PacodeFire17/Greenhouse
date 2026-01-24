@@ -47,6 +47,7 @@ bool fan_state =        false;
 bool pump_state =       false;
 bool resistor_state =   false;
 bool humidifier_state = false;
+bool last_humidifier_state = false;
 bool pump_is_watering = false;
 bool pump_timer_state = true;
 volatile int16_t humidity_sensor_value =    25;
@@ -239,10 +240,14 @@ void updateHw(void){
     else 
         stopResistor();
 
-    if (humidifier_state) 
-        startHum();
-    else 
-        stopHum();
+    if (humidifier_state != previous_humidifier_state) {
+        if (humidifier_state) {
+            startHum();
+        } else {
+            stopHum();
+        }
+        previous_humidifier_state = humidifier_state;
+    }
 
     // Service watchdog timer
     WDT_A_clearTimer();
