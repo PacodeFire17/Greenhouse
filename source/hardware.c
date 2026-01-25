@@ -29,7 +29,7 @@ const uint_fast8_t FAN_PORT =                   GPIO_PORT_P2;
 const uint_fast8_t PUMP_PORT =                  GPIO_PORT_P2;
 const uint_fast8_t LEVER_PORT =                 GPIO_PORT_P6;
 const uint_fast8_t RESISTOR_PORT =              GPIO_PORT_P3;
-const uint_fast8_t HUMIDIFIER_PORT =            GPIO_PORT_P4;  // Bug to be checked out: it works in tests but not in main file. Sometimes causes a press in b3 and turns on only after. Voltage in control pin stays high. Stable bug: it stays off while in humidifier manual setting, but turns on when passing to next setting.
+const uint_fast8_t HUMIDIFIER_PORT =            GPIO_PORT_P4;
 
 // Pins (equally arbitrary)
 const uint_fast16_t B1_PIN =                    GPIO_PIN1;  // S1 button,before 1.1, now canged to 5.1
@@ -40,16 +40,16 @@ const uint_fast16_t PUMP_PIN =                  GPIO_PIN7;  // Changed to higher
 const uint_fast16_t LEVER_PIN =                 GPIO_PIN4;
 const uint_fast16_t RESISTOR_PIN =              GPIO_PIN2;
 const uint_fast16_t HUMIDIFIER_POWER_PIN =      GPIO_PIN7;  // should be returned to 3 if tests do not work
-const uint_fast16_t HUMIDIFIER_SIGNAL_PIN =     GPIO_PIN2;  // Changed to prevent conflict with button also in 4.1
+const uint_fast16_t HUMIDIFIER_SIGNAL_PIN =     GPIO_PIN7;  // Changed to prevent conflict with button also in 4.1
 
 // Status flags
 bool fan_state =        false;
 bool pump_state =       false;
 bool resistor_state =   false;
 bool humidifier_state = false;
-bool last_humidifier_state = false;
 bool pump_is_watering = false;
 bool pump_timer_state = true;
+bool previous_humidifier_state = false;
 volatile int16_t humidity_sensor_value =    25;
 volatile int16_t temperature_sensor_value = 25;
 
@@ -207,7 +207,8 @@ void pauseHw(void){
     // Block pump timer
     pump_timer_state = false;
     // Should be last since it takes 2*hum_pulse_duration_ms
-    stopHum(); 
+    if (humidifier_state == 1)         
+        stopHum(); 
 
     // TODO!: verify: is it actually correct to stop this? Removed for now as it messed up buttons logic
     //disable interrupt timer (stop counter)
@@ -415,14 +416,15 @@ void readSensors(void){
 
 // Starts the humidifier circuit with a pulse
 void startHum(void){
+    printf("[HARDWARE] Starting hum\n");
     // The module has two settings: continuous (first click) and alternate 10s on/5s off
     // https://ae01.alicdn.com/kf/S64754aa461d14f20ac57202706dfa4397.jpg
     // https://ae01.alicdn.com/kf/Scc9a0b2f94fb432ebde817d22de69baei.jpg
     WDT_A_holdTimer();
     Interrupt_disableMaster();
     
-    GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_POWER_PIN);
-    Delay_ms(1);
+//    GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_POWER_PIN);
+//    Delay_ms(1);
     GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_SIGNAL_PIN);
     Delay_ms(hum_pulse_duration_ms);
     GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_SIGNAL_PIN);
@@ -432,20 +434,32 @@ void startHum(void){
 
 // Stops the humidifier by cutting power
 void stopHum(void){
-    GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_POWER_PIN);
+    printf("[HARDWARE] Stopping hum\n");
+    WDT_A_holdTimer();
+    Interrupt_disableMaster();
+
+    GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_SIGNAL_PIN);
+    Delay_ms(hum_pulse_duration_ms);
     GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_SIGNAL_PIN);
+    Delay_ms(1);
+    GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_SIGNAL_PIN);
+    Delay_ms(hum_pulse_duration_ms);
+    GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_SIGNAL_PIN);
+
+    Interrupt_enableMaster();
+    WDT_A_startTimer();
 }
 
 // Activates the water pump
+// Reminder: this used to be swapped
 void startPump(void){
-    // L'implementazione precedente è inutile in quanto dead code
-    // (vedi definizione di pump state) e logicamente sbagliata
-    GPIO_setOutputHighOnPin(PUMP_PORT, PUMP_PIN);
+    GPIO_setOutputLowOnPin(PUMP_PORT, PUMP_PIN);
 }
 
 // Deactivates the water pump
 void stopPump(void){
-    GPIO_setOutputLowOnPin(PUMP_PORT, PUMP_PIN);
+    GPIO_setOutputHighOnPin(PUMP_PORT, PUMP_PIN);
+
 }
 
 // Activates the cooling fan

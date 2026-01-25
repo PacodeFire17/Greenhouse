@@ -41,7 +41,7 @@ void graphicsInit(void)
 
 // Prints temperature and humidity to the display
 void printSensorData(int temp, int hum) {
-    // printf("[UI] Printing - Temperature: %d C\t humidity: %d %%\n", temp, hum);
+     printf("[UI] Printing - Temperature: %d C\t humidity: %d %%\n", temp, hum);
     Graphics_clearDisplay(&g_sContext);
     char string[20];
     sprintf(string, "AUTOMATIC");
@@ -138,7 +138,7 @@ void printCurrentHardware(Hardware hw){
     // No input check is required, since Hardware is between 0 and 3
     char string[12];
     // Includes fan twice to simulate loop
-    const char *names[] = {"Pump", "Fan", "Humidifier", "Resistor", "Fan"};
+    const char *names[] = {"Pump", "Fan", "Humidifier", "Resistor", "Pump"};
     bool states[] = {pump_state, fan_state, humidifier_state, resistor_state};
     Graphics_clearDisplay(&g_sContext);
     printf("[UI] Printing - Hardware: %s, next: %s\n", names[hw], names[hw+1]);
