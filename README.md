@@ -31,61 +31,50 @@ Pins are defined in `source/hardware.c`. The pin configuration used in this proj
 
 | Peripheral        | MSP432 Port/Pin | Notes                     |
 | :---------------- | :-------------- | :------------------------ |
-| DHT22 Sensor      | `P2.5`          | Requires pull-up resistor |
-| Fan               | `P1.0`          | Output Active High        |
-| Pump              | `P2.1`          | Output Active High        |
+| DHT22 Sensor      | `P3.0`          | Requires pull-up resistor |
+| Fan               | `P2.5`          | Output Active High        |
+| Pump              | `P2.7`          | Output Active High        |
 | Resistor          | `P3.2`          | Output Active High        |
-| Humidifier power  | `P4.3`          | Toggles power             |
-| Humidifier signal | `P4.1`          | Pulse control             |
+| Humidifier power  | `P4.3`          | Not used                  |
+| Humidifier signal | `P4.7`          | Pulse control             |
 | Button B1         | `P5.1`          | Up / Increment            |
 | Button B2         | `P3.5`          | Down / decrement          |
 | Button B3         | `P4.1`          | Settings (Joystick)       |
-| Man/Auto switch   | `P3.1`          | Mode selection lever      |
+| Man/Auto switch   | `P6.4`          | Mode selection lever      |
 
 To supply power to power-hungry peripherals (fan, pump, resistor, humidifier power) an external transistor is used. The signal from the board opens the gate, aiming at reaching saturation to drive the actuators.
 
-
 Here some example ciruits.
-  
+
 ### System High-Level Block Diagram
+
 ![System High-Level Block Diagram](asset/SimpleScheme.png)
-  
+
 ### Input Interface Schematic (Buttons/Switches)
+
 ![Input Interface Schematic (Buttons/Switches)](asset/SwichScheme.png)
-  
+
 ### Complete Circuitry Scheme
+
 ![Power Control Circuitry](asset/CompleteScheme.png)
 
 ## Project Structure
 
-<!-- To be updated at the end -->
-<!-- We can remove everything automated or that should not be used?  -->
+The most important files are organized as follows:
 
 ```text
 .
-├── .ccsproject
-├── .cproject
-├── .gitignore
-├── .launches
-│   └── Greenhouse.launch
-├── .project
-├── .settings
-│   ├── org.eclipse.cdt.codan.core.prefs
-│   ├── org.eclipse.cdt.debug.core.prefs
-│   └── org.eclipse.core.resources.prefs
-├── LcdDriver
+├── LcdDriver  --> Contains all useful file for the LCD display
 │   ├── Crystalfontz128x128_ST7735.c
 │   ├── Crystalfontz128x128_ST7735.h
 │   ├── HAL_MSP_EXP432P401R_Crystalfontz128x128_ST7735.c
 │   └── HAL_MSP_EXP432P401R_Crystalfontz128x128_ST7735.h
-├── NOTES HOW TO RUN TEST_MAIN.c.txt
-├── README.md
+├── README.md --> Current file
 ├── include
 │   ├── dht22.h
 │   ├── hardware.h
 │   ├── states.h
 │   └── ui.h
-├── msp432p401r.cmd
 ├── source
 │   ├── dht22.c
 │   ├── hardware.c
@@ -93,12 +82,12 @@ Here some example ciruits.
 │   ├── states.c
 │   ├── test_main.c
 │   └── ui.c
-├── startup_msp432p401r_ccs.c
-├── system_msp432p401r.c
-├── targetConfigs
-│   ├── MSP432P401R.ccxml
-│   └── readme.txt
-└── test_suite
+├── tests
+│   ├── TESTS.md
+│   ├── test_hum.c
+│   ├── test_main.c
+│   ├── test_ui.c
+│   └── test_simple_hw.c
 ```
 
 ## How to Use
