@@ -18,7 +18,6 @@
 #endif
 
 
-
 // ====== VARIABLES & CONSTANTS ======
 
 // Ports (absolutely arbitrary and to be redefined, except for buttons)
@@ -32,15 +31,15 @@ const uint_fast8_t RESISTOR_PORT =              GPIO_PORT_P3;
 const uint_fast8_t HUMIDIFIER_PORT =            GPIO_PORT_P4;
 
 // Pins (equally arbitrary)
-const uint_fast16_t B1_PIN =                    GPIO_PIN1;  // S1 button,before 1.1, now canged to 5.1
-const uint_fast16_t B2_PIN =                    GPIO_PIN5;  // S2 button, before 1.4, now changed to 3.5
+const uint_fast16_t B1_PIN =                    GPIO_PIN1;  // S1 button
+const uint_fast16_t B2_PIN =                    GPIO_PIN5;  // S2 button
 const uint_fast16_t B3_PIN =                    GPIO_PIN1;  // S3 button (joystick)
-const uint_fast16_t FAN_PIN =                   GPIO_PIN5;  // Bug to be checked out: power to this pin brierfly turns on in auto mode every 3s
+const uint_fast16_t FAN_PIN =                   GPIO_PIN5;  
 const uint_fast16_t PUMP_PIN =                  GPIO_PIN7;  // Changed to higher power pin
 const uint_fast16_t LEVER_PIN =                 GPIO_PIN4;
 const uint_fast16_t RESISTOR_PIN =              GPIO_PIN2;
-const uint_fast16_t HUMIDIFIER_POWER_PIN =      GPIO_PIN7;  // should be returned to 3 if tests do not work
-const uint_fast16_t HUMIDIFIER_SIGNAL_PIN =     GPIO_PIN7;  // Changed to prevent conflict with button also in 4.1
+const uint_fast16_t HUMIDIFIER_POWER_PIN =      GPIO_PIN3;  // Not used due to power issues
+const uint_fast16_t HUMIDIFIER_SIGNAL_PIN =     GPIO_PIN7;  
 
 // Status flags
 bool fan_state =        false;
@@ -50,13 +49,9 @@ bool humidifier_state = false;
 bool pump_is_watering = false;
 bool pump_timer_state = true;
 bool previous_humidifier_state = false;
+volatile bool dht22_error_flag = false;
 volatile int16_t humidity_sensor_value =    25;
 volatile int16_t temperature_sensor_value = 25;
-
-// TODO!
-// Check before release that the pins and ports defined match the hardware
-
-volatile bool dht22_error_flag = false;
 
 //timer A1 count 100Hz (10ms)
 #define TIMER_PERIOD 7500
@@ -67,7 +62,7 @@ volatile bool dht22_error_flag = false;
 // whatever graphics context is
 Graphics_Context g_sContext;
 
-// Button handler in port 1
+// Button handler
 volatile uint8_t button_events = EVT_NONE;
 
 // Timer flags 
@@ -79,6 +74,10 @@ volatile uint8_t b1_debounce_countdown = 0;
 volatile uint8_t b2_debounce_countdown = 0;
 volatile uint8_t b3_debounce_countdown = 0;
 
+// Data storage declaration
+#pragma NOINIT(settings_store)
+Settings_t settings_store;
+
 // Duration of a pulse to toggle humidifier status (ms) - minimum tested is 50, +1 just to be sure
 const uint_fast8_t hum_pulse_duration_ms = 51;
 
@@ -88,14 +87,13 @@ volatile uint16_t pump_timer = 10;
 // ====== FUNCTIONS ======
 
 void hwInit(void) {
-
     // Halt watchdog timer and disable interrupts 
     WDT_A_holdTimer();
     Interrupt_disableMaster();
 
-    // CORE SYSTEM (POWER & FLASH)
     // Set the core voltage level to VCORE1
     PCM_setCoreVoltageLevel(PCM_VCORE1);
+
     // Set 2 flash wait states for Flash bank 0 and 1
     FlashCtl_setWaitState(FLASH_BANK0, 2);
     FlashCtl_setWaitState(FLASH_BANK1, 2);    
@@ -209,18 +207,12 @@ void pauseHw(void){
     // Should be last since it takes 2*hum_pulse_duration_ms
     if (humidifier_state == 1)         
         stopHum(); 
-
-    // TODO!: verify: is it actually correct to stop this? Removed for now as it messed up buttons logic
-    //disable interrupt timer (stop counter)
-    // Interrupt_disableInterrupt(INT_TA1_0);
 }
 
 void resumeHw(void){
     // Updating will automatically resume everything
     updateHw();
     pump_timer_state = true;
-    // //reume interrupt timer
-    // Interrupt_enableInterrupt(INT_TA1_0);
 }
 
 
@@ -256,10 +248,7 @@ void updateHw(void){
 
 
 // Full harware initialization function
-// TODO: this function is never used and is partly a duplicate of sys_init_logic. Check what to do with this. 
 void init(){
-    // reset the states
-    // To be implemented later on: read from memory instead of resetting
     fan_state =        false;
     pump_state =       false;
     resistor_state =   false;
@@ -306,9 +295,11 @@ void T32_INT2_IRQHandler(void){
     // The real call of the sensor read is outside the interrupt, in automatic mode
     three_s_flag = true;
 
-        // Useful prints for debugging
+    // Useful prints for debugging:
+
     // printf("[DEBUG] | Temp: %d | Hum: %d | State: %d | Lever: %d | Watering: %d | Pump timer: %5d | Pump timer state: %d |\n", 
     // temperature_sensor_value, humidity_sensor_value, current_state, checkLever(), pump_state ,pump_timer, pump_timer_state);
+
     // printf("[DEBUG] | Pump: %d | Hum: %d | Res: %d | Fan: %d | current/target temp: %d C/%d C | current/target hum: %d %%/%d %% |\n", 
     // pump_state, humidifier_state, resistor_state, fan_state, temperature_sensor_value, target_temp_c, humidity_sensor_value, target_humidity_pct);
     
@@ -407,24 +398,20 @@ void readSensors(void){
         temperature_sensor_value = data.temperature;
         humidity_sensor_value = data.humidity;
     }
-    printf("[HARDWARE] Reading sensor data: %3d, %3d. Error: %d\n", data.temperature, data.humidity, dht22_error_flag);
+//    printf("[HARDWARE] Reading sensor data: %3d, %3d. Error: %d\n", data.temperature, data.humidity, dht22_error_flag);
 }
 
 // ---- Hardware start/stop functions ----
 // Required for abstraction and to manage the board for the humidifier
-// Also needed to turn on/off status led if we implement them
 
 // Starts the humidifier circuit with a pulse
 void startHum(void){
-    printf("[HARDWARE] Starting hum\n");
+//    printf("[HARDWARE] Starting hum\n");
     // The module has two settings: continuous (first click) and alternate 10s on/5s off
     // https://ae01.alicdn.com/kf/S64754aa461d14f20ac57202706dfa4397.jpg
     // https://ae01.alicdn.com/kf/Scc9a0b2f94fb432ebde817d22de69baei.jpg
     WDT_A_holdTimer();
     Interrupt_disableMaster();
-    
-//    GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_POWER_PIN);
-//    Delay_ms(1);
     GPIO_setOutputHighOnPin(HUMIDIFIER_PORT, HUMIDIFIER_SIGNAL_PIN);
     Delay_ms(hum_pulse_duration_ms);
     GPIO_setOutputLowOnPin(HUMIDIFIER_PORT, HUMIDIFIER_SIGNAL_PIN);
@@ -432,9 +419,9 @@ void startHum(void){
     WDT_A_startTimer();
 }
 
-// Stops the humidifier by cutting power
+// Stops the humidifier, ideally by cutting power, now by sending a stop signal
 void stopHum(void){
-    printf("[HARDWARE] Stopping hum\n");
+//    printf("[HARDWARE] Stopping hum\n");
     WDT_A_holdTimer();
     Interrupt_disableMaster();
 
@@ -484,13 +471,39 @@ void stopResistor(void){
 
 // Checks the status of the manual/auto lever.
 // Returns 1 if it is in auto, 0 if in manual.
-// Defaults to 1 in case of reading error
+// This defaults to AUTO if there is no lever   
 bool checkLever(void){
     uint8_t lever_state = GPIO_getInputPinValue(LEVER_PORT, LEVER_PIN);
-    // HIGH = auto (true), LOW = manual (false)
-    // This defaults to AUTO if there is no lever   
+    // HIGH = auto (true), LOW = manual (false) 
     // When the lever closes/switches, it shorts the pin to GND and pin reads LOW.
-    // TODO: decide what to do when this turns to manual during settings. Ignore or drop settings?
     return (lever_state != 0); 
-    
 }
+
+void sys_init_logic(void) {
+    // Initialize Hardware
+    hwInit();
+    graphicsInit(); // Even if no screen, keep it to prevent errors
+
+    // RESTORE SETTINGS
+    // Check if magic number matches (meaning we wrote to it previously)
+    if (settings_store.magic_number == 0xCAFEBABE) {
+        // printf("SYSTEM: Restoring settings from memory...\n");
+        target_temp_c = settings_store.stored_temp;
+        target_humidity_pct = settings_store.stored_hum;
+        target_water_ml = settings_store.stored_water;
+    } else {
+        // printf("SYSTEM: First boot (or power loss). Setting defaults.\n");
+        // Set Defaults
+        target_temp_c = 25;
+        target_humidity_pct = 50;
+        target_water_ml = 150;
+        
+        // Save these defaults immediately
+        settings_store.stored_temp = target_temp_c;
+        settings_store.stored_hum = target_humidity_pct;
+        settings_store.stored_water = target_water_ml;
+        settings_store.magic_number = 0xCAFEBABE;
+    }
+    updateHw();
+}
+

@@ -13,13 +13,15 @@
     #include "dht22.h"
 #endif
 
-// Somehow these are required despite being defined in the .h file
+// ====== DEFINITIONS ======
+
+// Port and pin
 #define DHT22_PORT P3
 #define DHT22_PIN BIT0
 
-// External variable provided by the CMSIS system file 
-// it holds the current CPU frequency
 extern uint32_t SystemCoreClock;
+
+// ====== FUNCTIONS ======
 
 // Microsecond delay using SysTick
 // Needed because DHT22 uses specific timing 
@@ -59,9 +61,6 @@ void setHigh(void){
 
 
 void Delay_ms(uint32_t ms) {
-
-    // dichiarando la variabile fuori dal loop mi risolve un errore di compilazione, probabilmente prche' il mio CCS usa C89/C90
-    // da controllare se sul vostro compare lo stesso errore rimettendo la dichiarazione all'interno e poi eliminare questo commento
     uint32_t i = 0;
     for (i = 0; i < ms; ++i)
     {
@@ -71,7 +70,6 @@ void Delay_ms(uint32_t ms) {
 
 
 void DHT22_Init(void) {
-
     // Set pin as input
     setInput();
     DHT22_PORT->REN |= DHT22_PIN; // Enable internal pull-up resistor 
@@ -207,7 +205,5 @@ bool DHT22_Read(DHT22_Data_t *data) {
         printf("Problem here \n");
         return false;
     }
-
-
     return true;
 }

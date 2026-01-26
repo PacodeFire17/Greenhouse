@@ -17,31 +17,11 @@
 #endif
 
 
-
-
-void graphicsInit(void)
-{
-    /* Initializes display */
-    Crystalfontz128x128_Init();
-
-    /* Set default screen orientation */
-    Crystalfontz128x128_SetOrientation(LCD_ORIENTATION_UP);
-
-    /* Initializes graphics context */
-    Graphics_initContext(&g_sContext, &g_sCrystalfontz128x128,
-                         &g_sCrystalfontz128x128_funcs);
-    Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_RED);
-    Graphics_setBackgroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
-    GrContextFontSet(&g_sContext, &g_sFontFixed6x8);
-    Graphics_clearDisplay(&g_sContext);
-    char string[16];
-    sprintf(string, "Starting...");
-    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 50, OPAQUE_TEXT);
-}
+// ====== FUNCTIONS ======
 
 // Prints temperature and humidity to the display
 void printSensorData(int temp, int hum) {
-     printf("[UI] Printing - Temperature: %d C\t humidity: %d %%\n", temp, hum);
+    // printf("[UI] Printing - Temperature: %d C\t humidity: %d %%\n", temp, hum);
     Graphics_clearDisplay(&g_sContext);
     char string[20];
     sprintf(string, "AUTOMATIC");
@@ -56,7 +36,7 @@ void printSensorData(int temp, int hum) {
 void printWaterSettings(int level){
     Graphics_clearDisplay(&g_sContext);
     char string[21];
-    printf("[UI] Printing target water level: %d\n",level);
+    // printf("[UI] Printing target water level: %d\n",level);
     
     sprintf(string, "SETTINGS");
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 30, OPAQUE_TEXT);
@@ -64,7 +44,7 @@ void printWaterSettings(int level){
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 50, OPAQUE_TEXT);
     if (level > WATER_MAX || level < 0) {
         level = WATER_MAX * (level > WATER_MAX);
-        printf("[UI] ERROR: water level out of bounds\n");
+        // printf("[UI] ERROR: water level out of bounds\n");
     } 
     if (level == WATER_MAX) {
         sprintf(string, "%d ml/day (MAX)", level);
@@ -82,7 +62,7 @@ void printWaterSettings(int level){
 void printHumSettings(int level){
     Graphics_clearDisplay(&g_sContext);
     char string[21];
-    printf("[UI] Printing target humidity level: %d\n",level);
+    // printf("[UI] Printing target humidity level: %d\n",level);
     
     sprintf(string, "SETTINGS");
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 30, OPAQUE_TEXT);
@@ -90,7 +70,7 @@ void printHumSettings(int level){
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 50, OPAQUE_TEXT);
     if (level > HUM_MAX || level < 0) {
         level = HUM_MAX * (level > HUM_MAX);
-        printf("[UI] ERROR: humidity level out of bounds\n");
+        // printf("[UI] ERROR: humidity level out of bounds\n");
     } 
     if (level == HUM_MAX) {
         sprintf(string, "%d%% (MAX)", level);
@@ -108,7 +88,7 @@ void printHumSettings(int level){
 void printTempSettings(int level){
     Graphics_clearDisplay(&g_sContext);
     char string[21];
-    printf("[UI] Printing target temperature : %d\n",level);
+    // printf("[UI] Printing target temperature : %d\n",level);
     
     sprintf(string, "SETTINGS");
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 30, OPAQUE_TEXT);
@@ -116,10 +96,10 @@ void printTempSettings(int level){
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 50, OPAQUE_TEXT);
     if (level > TEMP_MAX) {
         level = TEMP_MAX;
-        printf("[UI] ERROR: temp too high\n");
+        // printf("[UI] ERROR: temp too high\n");
     } else if (level < TEMP_MIN) {
         level = TEMP_MIN;
-        printf("[UI] ERROR: temp too low\n");
+        // printf("[UI] ERROR: temp too low\n");
     }
     if (level == TEMP_MAX) {
         sprintf(string, "%d C (MAX)", level);
@@ -141,7 +121,7 @@ void printCurrentHardware(Hardware hw){
     const char *names[] = {"Pump", "Fan", "Humidifier", "Resistor", "Pump"};
     bool states[] = {pump_state, fan_state, humidifier_state, resistor_state};
     Graphics_clearDisplay(&g_sContext);
-    printf("[UI] Printing - Hardware: %s, next: %s\n", names[hw], names[hw+1]);
+    // printf("[UI] Printing - Hardware: %s, next: %s\n", names[hw], names[hw+1]);
     sprintf(string, "MANUAL");
     Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 30, OPAQUE_TEXT);
     sprintf(string, "Current HW:");
@@ -159,3 +139,23 @@ void printCurrentHardware(Hardware hw){
     Graphics_drawStringCentered(&g_sContext, (int8_t *) names[hw+1], AUTO_STRING_LENGTH, 64, 100, OPAQUE_TEXT);
 }
 
+// General graphics initalization
+void graphicsInit(void)
+{
+    /* Initializes display */
+    Crystalfontz128x128_Init();
+
+    /* Set default screen orientation */
+    Crystalfontz128x128_SetOrientation(LCD_ORIENTATION_UP);
+
+    /* Initializes graphics context */
+    Graphics_initContext(&g_sContext, &g_sCrystalfontz128x128,
+                         &g_sCrystalfontz128x128_funcs);
+    Graphics_setForegroundColor(&g_sContext, GRAPHICS_COLOR_RED);
+    Graphics_setBackgroundColor(&g_sContext, GRAPHICS_COLOR_WHITE);
+    GrContextFontSet(&g_sContext, &g_sFontFixed6x8);
+    Graphics_clearDisplay(&g_sContext);
+    char string[16];
+    sprintf(string, "Starting...");
+    Graphics_drawStringCentered(&g_sContext, (int8_t *) string, AUTO_STRING_LENGTH, 64, 50, OPAQUE_TEXT);
+}

@@ -41,23 +41,15 @@ void fn_INIT(){
     lever_status_set();
 }
 
-
 void fn_MANUAL(){
     manual();
     lever_status_set();
 }
 
-
-
 void fn_AUTOMATIC(void){
     automatic();
     lever_status_set();
 }
-
-
-// #define EVT_B1_PRESS  0x01  // 0001 // Updated: Up (board)
-// #define EVT_B2_PRESS  0x02  // 0010 // Down
-// #define EVT_B3_PRESS  0x04  // 0100 // Settings (joystick)
 
 void manual(){
     bool is_changed = false;
@@ -69,7 +61,7 @@ void manual(){
         case PUMP:
             // Case Up: turn on pump
             if (button_events & EVT_B1_PRESS){ 
-                printf("[STATES] Manual - Turning on pump, events: %3d\n", button_events);
+//                printf("[STATES] Manual - Turning on pump, events: %3d\n", button_events);
                 pump_state = 1;
                 button_events &= ~EVT_B1_PRESS;
                 is_changed = true;
@@ -78,7 +70,7 @@ void manual(){
             // By default this turns off the device if both buttons are pressed
             if (button_events & EVT_B2_PRESS){ 
                 
-                printf("[STATES] Manual - Turning off pump, events: %3d\n", button_events);
+//                printf("[STATES] Manual - Turning off pump, events: %3d\n", button_events);
                 pump_state = 0;
                 button_events &= ~EVT_B2_PRESS;
                 is_changed = true;
@@ -86,7 +78,7 @@ void manual(){
             // Case Settings: switch to next hardware and turn off 
             // Change setting last to prevent other hardware from firing accidentally
             if (button_events & EVT_B3_PRESS) {
-                printf("[STATES] Manual - b1 pressed, passing from pump to fan. events: %3d\n", button_events);
+//                printf("[STATES] Manual - b1 pressed, passing from pump to fan. events: %3d\n", button_events);
                 pump_state = false;
                 current_hw = FAN;
                 // Reset button states to prevent any potential bug
@@ -169,9 +161,6 @@ void manual(){
 }
 
 void automatic(){
-    // Change from num_states toreal state, used as a way to raise "not implemented" error
-    //current_state = NUM_STATES;
-
     // Sensor value update (managed by interrupt now; moved all logic depending on this value in the if)
     if (three_s_flag) {
         three_s_flag = false;
@@ -217,16 +206,16 @@ void automatic(){
 void lever_status_set(void){
     // NUM_STATES is used as a wildcard to let the function know the state must be set from scratch
     if (current_state != STATE_AUTOMATIC && current_state != STATE_MANUAL && current_state != NUM_STATES){
-        printf("[STATES] Lever attempted to change state, but not in a changeable state\n");
+        // printf("[STATES] Lever attempted to change state, but not in a changeable state\n");
         return;
     } 
     int old_state = current_state;
     if (checkLever()){
         current_state = STATE_AUTOMATIC;
+        // Things to be run when entering automatic state, can be made into a function to call it at startup
         if (current_state != old_state){
-            // Things to be run when entering automatic state, can be made into a function to call it at startup
-            printf("[STATES] Lever changed state to automatic\n");
-            // TODO: This can cause inconsistent values to be printed, since it will print outdated values. 
+            // printf("[STATES] Lever changed state to automatic\n");
+            // This can cause inconsistent values to be printed, since it will print outdated values. 
             // It can most likely be ignored with no consequences since temperature and humidity do not change much, but 
             // we must aknowledge this. 
             fan_state = 0;
@@ -240,7 +229,7 @@ void lever_status_set(void){
         current_state = STATE_MANUAL;
         if (current_state != old_state){
             // When state changes from auto to manual, pause hardware and print
-            printf("[STATES] Lever changed state to manual\n");
+            // printf("[STATES] Lever changed state to manual\n");
             // Reset to default
             current_hw = PUMP;
             pauseHw();
@@ -269,14 +258,9 @@ void fn_next_state(void) {
     }
 }
 
-// #define EVT_B1_PRESS  0x01  // 0001 // Updated: Up (board)
-// #define EVT_B2_PRESS  0x02  // 0010 // Down
-// #define EVT_B3_PRESS  0x04  // 0100 // Settings (joystick)
-
 // Functions for changing target settings
 void fn_SET_WATER(void){
     bool is_updated = false;
-    // pauseHw();
     // up
     if (button_events & EVT_B1_PRESS) {
         is_updated = true;

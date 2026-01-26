@@ -17,12 +17,6 @@
     #include "dht22.h"
 #endif
 
-typedef enum{
-	PUMP,
-	FAN,
-	HUMIDIFIER,
-	RESISTOR
-}Hardware;
 
 // Function declaration
 void init(void);
@@ -42,6 +36,7 @@ void startPump(void);
 void stopPump(void);
 void startResistor(void);
 void stopResistor(void);
+void sys_init_logic(void);
 
 // Sensor Function
 void readSensors(void);
@@ -59,11 +54,29 @@ extern volatile bool three_s_flag;
 extern volatile uint16_t pump_timer;
 extern volatile uint8_t button_events;
 
-// Define event 
+// Button press events 
 #define EVT_NONE 0x00
 #define EVT_B1_PRESS 0x01
 #define EVT_B2_PRESS 0x02
 #define EVT_B3_PRESS 0x04
 
+// Enum to store all available hardware
+typedef enum{
+	PUMP,
+	FAN,
+	HUMIDIFIER,
+	RESISTOR
+}Hardware;
+
+// Data storage to prevent soft resets from deleting information
+typedef struct {
+    uint32_t magic_number; // Used to check if data is valid
+    int stored_temp;
+    int stored_hum;
+    int stored_water;
+} Settings_t;
+
+// Data struct to survive soft resets
+extern Settings_t settings_store;
 
 #endif

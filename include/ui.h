@@ -16,18 +16,16 @@
     #include "hardware.h"
 #endif
 
-// Functions declaration
+
+// Init
 void graphicsInit(void);
-void printSensorData(int temp, int hum); 	// Print on the screen temperature and humidity
-// example
-void drawTitle(void);
+extern Graphics_Context g_sContext;
+
 // Settings print
+void printSensorData(int temp, int hum); 	
 void printWaterSettings(int level);
 void printHumSettings(int level);
 void printTempSettings(int level);
 void printCurrentHardware(Hardware hw);
-
-// Graphic library context
-extern Graphics_Context g_sContext;
 
 #endif

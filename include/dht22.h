@@ -15,6 +15,7 @@
     #include <stdbool.h>
 #endif
 
+
 // Hardware configuration
 #define DHT22_PORT P3
 #define DHT22_PIN BIT0
@@ -25,7 +26,7 @@ typedef struct {
     int8_t temperature;    // fixed-point format
 } DHT22_Data_t;
 
-// --- Public Function --- 
+// Functions
 void Delay_ms(uint32_t ms);
 void DHT22_Init(void);
 bool DHT22_Read(DHT22_Data_t *data);
