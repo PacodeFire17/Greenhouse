@@ -1,5 +1,11 @@
 # Greenhouse - MSP432 Greenhouse Automation System
 
+By Niccolò Eccel (NeoEcc), Giacomo Tollardo (Xild0), Gabriel Ardai (gabardoct), and Federico Santini (PacodeFire17), ordered by [contribution](https://github.com/PacodeFire17/Greenhouse/graphs/contributors).
+
+[Link to the presentation pdf](https://github.com/PacodeFire17/Greenhouse/blob/a4529b1c415ef1f5cc598ada95d5c6407ae2ad11/Greenhouse_presentation.pdf)
+
+[Link to the video presentation](https://youtu.be/8gGkwbpw-fY)
+
 This project implements a complete control system for an automated greenhouse based on the TI MSP432P401R microcontroller. The system monitors temperature and humidity, automatically managing actuators (fans, pumps, heating resistors, humidifiers) to maintain ideal environmental conditions, or allowing for direct manual control.
 
 ## Key Features
